@@ -1,0 +1,17 @@
+{
+  "config_version": "prototype_v1",
+  "disclaimer": "PROTOTYPE THRESHOLDS ONLY. Not official maritime safety standards.",
+  "wave_height_safe_m": 1.5,
+  "wave_height_caution_m": 2.5,
+  "wind_speed_safe_kmh": 30,
+  "wind_speed_caution_kmh": 50,
+  "current_speed_caution_ms": 1.0,
+  "visibility_min_km": 2.0,
+  "score_go_threshold": 75,
+  "score_caution_threshold": 50,
+  "weights": {
+    "safety": 0.50,
+    "fishing": 0.30,
+    "effort": 0.20
+  }
+}

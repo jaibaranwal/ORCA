@@ -1,0 +1,41 @@
+[
+  {
+    "zone_id": "zone_a",
+    "zone_name": "Zone A (Coastal South)",
+    "pfz_score": 72,
+    "pfz_label": "Moderate",
+    "centroid": {
+      "lat": 9.75,
+      "lon": 76.15,
+      "name": "Zone A Center"
+    },
+    "distance_km": 28.5,
+    "restricted": false
+  },
+  {
+    "zone_id": "zone_b",
+    "zone_name": "Zone B (Offshore West)",
+    "pfz_score": 86,
+    "pfz_label": "High",
+    "centroid": {
+      "lat": 10.05,
+      "lon": 75.95,
+      "name": "Zone B Center"
+    },
+    "distance_km": 18.0,
+    "restricted": false
+  },
+  {
+    "zone_id": "zone_c",
+    "zone_name": "Zone C (Deep North)",
+    "pfz_score": 91,
+    "pfz_label": "Very High",
+    "centroid": {
+      "lat": 10.45,
+      "lon": 75.75,
+      "name": "Zone C Center"
+    },
+    "distance_km": 54.0,
+    "restricted": false
+  }
+]

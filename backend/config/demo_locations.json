@@ -1,0 +1,23 @@
+[
+  {
+    "name": "Kochi Port",
+    "lat": 9.966,
+    "lon": 76.267,
+    "state": "Kerala",
+    "type": "port"
+  },
+  {
+    "name": "Munambam Harbor",
+    "lat": 10.183,
+    "lon": 76.166,
+    "state": "Kerala",
+    "type": "harbor"
+  },
+  {
+    "name": "Vizhinjam Port",
+    "lat": 8.375,
+    "lon": 76.995,
+    "state": "Kerala",
+    "type": "port"
+  }
+]
