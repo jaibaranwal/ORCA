@@ -54,6 +54,7 @@ export interface ZoneInfo {
     lon: number;
     name?: string;
   };
+  polygon?: number[][];
   sst_celsius?: number;
   chlorophyll_mg_m3?: number;
   depth_m?: number;

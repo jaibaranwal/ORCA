@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
-import { MapContainer, TileLayer, Polygon, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import { useEffect, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, GeoJSON, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { ZoneInfo, BoundariesGeoJSON, GeoLocation, DecisionResult } from '@/lib/types';
+import 'leaflet/dist/leaflet.css';
+import { ZoneInfo, BoundariesGeoJSON, DecisionResult, GeoLocation } from '@/lib/types';
 
+// Custom Map center adjuster
 function ChangeView({ center, zoom }: { center: [number, number]; zoom: number }) {
   const map = useMap();
   useEffect(() => {
@@ -13,21 +15,7 @@ function ChangeView({ center, zoom }: { center: [number, number]; zoom: number }
   return null;
 }
 
-const userPortIcon = L.divIcon({
-  className: 'custom-port-icon',
-  html: `<div style="background-color: #06b6d4; border: 2px solid white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(6, 182, 212, 0.8); font-size: 13px;">⚓</div>`,
-  iconSize: [24, 24],
-  iconAnchor: [12, 12],
-});
-
-const destinationIcon = L.divIcon({
-  className: 'custom-dest-icon',
-  html: `<div style="background-color: #10b981; border: 2px solid white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(16, 185, 129, 0.8); font-size: 12px;">🎯</div>`,
-  iconSize: [24, 24],
-  iconAnchor: [12, 12],
-});
-
-interface OrcaMapProps {
+interface OrcaMapInnerProps {
   zones: ZoneInfo[];
   boundaries: BoundariesGeoJSON | null;
   selectedZone: ZoneInfo | null;
@@ -43,207 +31,191 @@ export default function OrcaMapInner({
   decision,
   userOrigin,
   onSelectZone,
-}: OrcaMapProps) {
-  const defaultCenter: [number, number] = [10.15, 75.95];
-  const mapCenter: [number, number] = selectedZone?.centroid
+}: OrcaMapInnerProps) {
+  // Origin coordinate
+  const originCoord: [number, number] = [userOrigin.lat, userOrigin.lon];
+  
+  // Destination coordinate
+  const destCoord: [number, number] = selectedZone?.centroid
     ? [selectedZone.centroid.lat, selectedZone.centroid.lon]
-    : defaultCenter;
+    : [10.05, 75.92];
 
-  const getZoneStyle = (zone: ZoneInfo) => {
-    const isSelected = selectedZone?.zone_id === zone.zone_id;
+  // Route points: Origin -> Destination
+  const routePoints: [number, number][] = [originCoord, destCoord];
 
-    if (decision && decision.zone_id === zone.zone_id) {
-      if (decision.status === 'GO') {
-        return {
-          fillColor: '#10b981',
-          fillOpacity: 0.45,
-          color: '#34d399',
-          weight: 3,
-        };
-      } else if (decision.status === 'CAUTION') {
-        return {
-          fillColor: '#f59e0b',
-          fillOpacity: 0.45,
-          color: '#fbbf24',
-          weight: 3,
-        };
-      } else {
-        return {
-          fillColor: '#ef4444',
-          fillOpacity: 0.45,
-          color: '#f87171',
-          weight: 3,
-        };
-      }
-    }
+  // Port Icon
+  const portIcon = L.divIcon({
+    className: 'custom-port-icon',
+    html: `<div style="
+      background-color: #0284c7;
+      color: white;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      box-shadow: 0 0 12px rgba(2,132,199,0.8);
+    ">⚓</div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+  });
 
-    if (isSelected) {
-      return {
-        fillColor: '#06b6d4',
-        fillOpacity: 0.4,
-        color: '#22d3ee',
-        weight: 3,
-      };
-    }
+  // Zone Centroid Icon helper
+  const createZoneIcon = (zone: ZoneInfo, isSelected: boolean, verdict?: string) => {
+    let bgColor = '#0284c7';
+    if (verdict === 'GO') bgColor = '#10b981';
+    else if (verdict === 'CAUTION') bgColor = '#f59e0b';
+    else if (verdict === 'WAIT') bgColor = '#f43f5e';
+    else if (zone.pfz_score >= 80) bgColor = '#06b6d4';
 
-    const color = zone.pfz_score >= 80 ? '#38bdf8' : '#818cf8';
-    return {
-      fillColor: color,
-      fillOpacity: 0.2,
-      color: color,
-      weight: 1.5,
-      dashArray: '4, 4',
-    };
+    const size = isSelected ? 32 : 26;
+    return L.divIcon({
+      className: 'custom-zone-icon',
+      html: `<div style="
+        background-color: ${bgColor};
+        color: white;
+        width: ${size}px;
+        height: ${size}px;
+        border-radius: 50%;
+        border: ${isSelected ? '3px solid #ffffff' : '2px solid rgba(255,255,255,0.7)'};
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: ${isSelected ? '12px' : '10px'};
+        font-family: monospace;
+        box-shadow: 0 0 ${isSelected ? '16px' : '8px'} ${bgColor};
+      ">${zone.pfz_score}</div>`,
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size / 2],
+    });
   };
 
   return (
-    <div className="w-full h-full min-h-[420px] rounded-2xl overflow-hidden border border-slate-800 shadow-2xl relative">
-      <MapContainer
-        center={defaultCenter}
-        zoom={8}
-        scrollWheelZoom={true}
-        className="w-full h-full min-h-[420px]"
-      >
-        <ChangeView center={mapCenter} zoom={selectedZone ? 9 : 8} />
+    <MapContainer
+      center={[9.95, 75.95]}
+      zoom={9}
+      style={{ height: '100%', width: '100%', borderRadius: '1rem' }}
+      className="z-10 shadow-2xl border border-slate-800"
+    >
+      <ChangeView center={selectedZone?.centroid ? [selectedZone.centroid.lat, selectedZone.centroid.lon] : [9.95, 75.95]} zoom={9} />
 
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> & CartoDB'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+      {/* CartoDB Dark Matter Tiles */}
+      <TileLayer
+        attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+      />
+
+      {/* 1. Origin / Port Marker */}
+      <Marker position={originCoord} icon={portIcon}>
+        <Popup className="custom-popup">
+          <div className="text-xs p-1 text-slate-900 font-sans font-medium">
+            <strong className="text-sky-700 block font-bold">⚓ {userOrigin.name || 'Kochi Port'}</strong>
+            <span>Vessel Departure Base • Arabian Sea Corridor</span>
+          </div>
+        </Popup>
+      </Marker>
+
+      {/* 2. Active Mission Route Polyline */}
+      {selectedZone && (
+        <Polyline
+          positions={routePoints}
+          pathOptions={{
+            color: decision?.status === 'GO' ? '#10b981' : decision?.status === 'CAUTION' ? '#f59e0b' : '#06b6d4',
+            weight: 3,
+            dashArray: '6, 8',
+            opacity: 0.85,
+          }}
         />
+      )}
 
-        <Marker position={[userOrigin.lat, userOrigin.lon]} icon={userPortIcon}>
-          <Popup>
-            <div className="text-xs">
-              <strong className="text-cyan-400 block font-semibold">{userOrigin.name || 'User Port'}</strong>
-              <span className="text-slate-300">Base Origin & Vessel Mooring</span>
-              <p className="text-[11px] text-slate-400 mt-1">Lat: {userOrigin.lat}, Lon: {userOrigin.lon}</p>
-            </div>
-          </Popup>
-        </Marker>
+      {/* 3. Restricted Maritime Boundaries Layer */}
+      {boundaries && (
+        <GeoJSON
+          data={boundaries as any}
+          style={(feature) => ({
+            color: '#e11d48',
+            weight: 2,
+            dashArray: '4, 4',
+            fillColor: '#f43f5e',
+            fillOpacity: 0.18,
+          })}
+          onEachFeature={(feature, layer) => {
+            const p = feature.properties;
+            layer.bindPopup(
+              `<div style="font-size: 11px; font-family: sans-serif; color: #0f172a; padding: 2px;">
+                <strong style="color: #be123c;">⛔ ${p.name}</strong><br/>
+                <span style="font-size: 10px; color: #475569;">Restriction: ${p.restriction_level}</span><br/>
+                <span>${p.description}</span>
+              </div>`
+            );
+          }}
+        />
+      )}
 
-        {boundaries?.features.map((feature, idx) => {
-          const coords = feature.geometry.coordinates[0] || [];
-          const latLngs: [number, number][] = coords.map((c: any) => [c[1], c[0]]);
-          const isNaval = feature.properties.type === 'military_restricted';
+      {/* 4. Fishing Zones Polygons & Markers */}
+      {zones.map((zone) => {
+        const isSelected = selectedZone?.zone_id === zone.zone_id;
+        const currentVerdict = isSelected ? decision?.status : undefined;
+        
+        let polyColor = '#0284c7';
+        if (isSelected) {
+          if (decision?.status === 'GO') polyColor = '#10b981';
+          else if (decision?.status === 'CAUTION') polyColor = '#f59e0b';
+          else if (decision?.status === 'WAIT') polyColor = '#f43f5e';
+          else polyColor = '#06b6d4';
+        }
 
-          return (
-            <Polygon
-              key={feature.properties.boundary_id || idx}
-              positions={latLngs}
-              pathOptions={{
-                fillColor: isNaval ? '#dc2626' : '#ea580c',
-                fillOpacity: 0.35,
-                color: isNaval ? '#ef4444' : '#f97316',
-                weight: 2,
-                dashArray: '6, 6',
-              }}
-            >
-              <Popup>
-                <div className="text-xs max-w-xs">
-                  <div className="flex items-center gap-1.5 font-bold text-rose-400">
-                    <span>⛔</span> {feature.properties.name}
+        return (
+          <div key={zone.zone_id}>
+            {/* Zone Polygon */}
+            {zone.polygon && (
+              <Polygon
+                positions={zone.polygon as any}
+                eventHandlers={{
+                  click: () => onSelectZone(zone),
+                }}
+                pathOptions={{
+                  color: polyColor,
+                  weight: isSelected ? 3 : 1.5,
+                  fillColor: polyColor,
+                  fillOpacity: isSelected ? 0.35 : 0.15,
+                }}
+              />
+            )}
+
+            {/* Zone Centroid Marker */}
+            {zone.centroid && (
+              <Marker
+                position={[zone.centroid.lat, zone.centroid.lon]}
+                icon={createZoneIcon(zone, isSelected, currentVerdict)}
+                eventHandlers={{
+                  click: () => onSelectZone(zone),
+                }}
+              >
+                <Popup>
+                  <div className="text-xs p-1 text-slate-900 font-sans">
+                    <strong className="text-cyan-700 block font-bold text-sm">{zone.zone_name}</strong>
+                    <div className="mt-1 space-y-0.5 text-[11px] text-slate-700 font-mono">
+                      <div>PFZ Potential Score: <strong>{zone.pfz_score}/100</strong></div>
+                      <div>Distance: <strong>{zone.distance_km} km</strong></div>
+                      {zone.sst_celsius && <div>SST: <strong>{zone.sst_celsius}°C</strong></div>}
+                      {isSelected && decision && (
+                        <div className="mt-1 pt-1 border-t border-slate-200">
+                          Verdict: <strong className={decision.status === 'GO' ? 'text-emerald-700' : 'text-amber-700'}>{decision.status} ({decision.score}/100)</strong>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <span className="inline-block mt-1 px-1.5 py-0.5 rounded bg-rose-950 text-rose-300 font-mono text-[10px]">
-                    {feature.properties.restriction_level}
-                  </span>
-                  <p className="text-slate-300 mt-1 text-[11px] leading-relaxed">
-                    {feature.properties.description}
-                  </p>
-                </div>
-              </Popup>
-            </Polygon>
-          );
-        })}
-
-        {zones.map((zone) => {
-          if (!zone.coordinates || zone.coordinates.length === 0) return null;
-          
-          const coordsList = Array.isArray(zone.coordinates[0]) && Array.isArray(zone.coordinates[0][0])
-            ? (zone.coordinates[0] as any)
-            : zone.coordinates;
-
-          const latLngs: [number, number][] = coordsList.map((c: any) => [Number(c[1]), Number(c[0])]);
-          const style = getZoneStyle(zone);
-
-          return (
-            <Polygon
-              key={zone.zone_id}
-              positions={latLngs}
-              pathOptions={style}
-              eventHandlers={{
-                click: () => onSelectZone(zone),
-              }}
-            >
-              <Popup>
-                <div className="text-xs">
-                  <strong className="text-white font-bold block text-sm">{zone.zone_name}</strong>
-                  <div className="mt-1 flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 font-mono text-[11px]">
-                      PFZ Score: {zone.pfz_score}
-                    </span>
-                    <span className="text-slate-400 font-medium">Dist: {zone.distance_km} km</span>
-                  </div>
-                  {zone.sst_celsius && (
-                    <p className="text-slate-400 text-[11px] mt-1">
-                      SST: {zone.sst_celsius}°C • Chl: {zone.chlorophyll_mg_m3} mg/m³
-                    </p>
-                  )}
-                  <button
-                    onClick={() => onSelectZone(zone)}
-                    className="mt-2 w-full py-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded text-[11px] font-semibold"
-                  >
-                    Select Zone
-                  </button>
-                </div>
-              </Popup>
-            </Polygon>
-          );
-        })}
-
-        {selectedZone?.centroid && (
-          <>
-            <Marker
-              position={[selectedZone.centroid.lat, selectedZone.centroid.lon]}
-              icon={destinationIcon}
-            >
-              <Popup>
-                <div className="text-xs">
-                  <strong className="text-emerald-400 font-semibold">{selectedZone.zone_name} Centroid</strong>
-                  <p className="text-[11px] text-slate-300">PFZ Target Aggregation Area</p>
-                </div>
-              </Popup>
-            </Marker>
-
-            <Polyline
-              positions={[
-                [userOrigin.lat, userOrigin.lon],
-                [selectedZone.centroid.lat, selectedZone.centroid.lon],
-              ]}
-              pathOptions={{
-                color: decision?.status === 'GO' ? '#10b981' : decision?.status === 'CAUTION' ? '#f59e0b' : '#38bdf8',
-                weight: 3,
-                dashArray: '8, 8',
-                opacity: 0.8,
-              }}
-            />
-          </>
-        )}
-      </MapContainer>
-
-      <div className="absolute bottom-3 left-3 z-[1000] bg-slate-900/90 backdrop-blur border border-slate-800 rounded-xl px-3 py-2 text-[11px] text-slate-300 flex flex-wrap items-center gap-3 shadow-lg">
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
-          <span>⚓ Kochi Port</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded bg-sky-500/40 border border-sky-400" />
-          <span>Fishing Zones (PFZ)</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded bg-rose-500/40 border border-rose-500" />
-          <span>Restricted Maritime Boundary</span>
-        </div>
-      </div>
-    </div>
+                </Popup>
+              </Marker>
+            )}
+          </div>
+        );
+      })}
+    </MapContainer>
   );
 }

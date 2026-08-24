@@ -19,12 +19,13 @@ import {
   DecisionObject 
 } from '@/lib/types';
 import OrcaMap from '@/components/Map/OrcaMap';
-import DecisionPanel from '@/components/Decision/DecisionPanel';
-import ChatPanel from '@/components/Chat/ChatPanel';
-import TrackedDecisionsList from '@/components/Decision/TrackedDecisionsList';
+import DecisionLifecycleBar from '@/components/Lifecycle/DecisionLifecycleBar';
+import ActiveDecisionCard from '@/components/Mission/ActiveDecisionCard';
+import MissionRegistry from '@/components/Mission/MissionRegistry';
+import AskOrcaDrawer from '@/components/Chat/AskOrcaDrawer';
 import DecisionDetailsModal from '@/components/Decision/DecisionDetailsModal';
 
-export default function Home() {
+export default function MissionControlPage() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [zones, setZones] = useState<ZoneInfo[]>([]);
   const [boundaries, setBoundaries] = useState<BoundariesGeoJSON | null>(null);
@@ -33,11 +34,14 @@ export default function Home() {
   const [decision, setDecision] = useState<DecisionResult | null>(null);
   const [trackedDecisions, setTrackedDecisions] = useState<DecisionObject[]>([]);
   const [inspectedDecision, setInspectedDecision] = useState<DecisionObject | null>(null);
-  const [activeTab, setActiveTab] = useState<'chat' | 'decision' | 'tracked'>('chat');
+  
+  // Tab view on right workstation: 'active' (Decision card), 'registry' (Mission registry), 'chat' (Ask ORCA)
+  const [activeTab, setActiveTab] = useState<'active' | 'registry' | 'chat'>('active');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
 
+  // User Base Location: Kochi Port, Kerala
   const userOrigin: GeoLocation = {
     lat: 9.966,
     lon: 76.267,
@@ -67,7 +71,7 @@ export default function Home() {
         setConditions(cond);
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to initialize ORCA marine platform');
+      setError(err.message || 'Failed to connect to ORCA decision backend');
     } finally {
       setLoading(false);
     }
@@ -89,11 +93,13 @@ export default function Home() {
     if (matchedZone) {
       setSelectedZone(matchedZone);
     }
+    setActiveTab('active');
   };
 
   const handleDecisionTracked = (tracked: DecisionObject) => {
     setTrackedDecisions((prev) => [tracked, ...prev.filter((d) => d.decision_id !== tracked.decision_id)]);
-    setActiveTab('tracked');
+    setInspectedDecision(tracked);
+    setActiveTab('registry');
   };
 
   const handleDecisionUpdated = (updated: DecisionObject) => {
@@ -127,70 +133,91 @@ export default function Home() {
     }
   };
 
+  // Primary active tracked decision (if any)
+  const activeTrackedDecision = trackedDecisions.find((d) => d.lifecycle_status !== 'CANCELLED') || null;
+
   useEffect(() => {
     loadInitialData();
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      {/* Top Navbar */}
-      <header className="border-b border-slate-800 bg-slate-900/70 backdrop-blur px-6 py-3 flex items-center justify-between sticky top-0 z-50">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-black">
+      
+      {/* 1. Mission Control Header */}
+      <header className="border-b border-slate-800 bg-slate-900/90 backdrop-blur px-5 py-3 flex items-center justify-between sticky top-0 z-50 shadow-xl">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold text-xl shadow-md shadow-cyan-950">
+          <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold text-2xl shadow-lg shadow-cyan-950">
             🐋
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-bold text-lg tracking-wide text-white">ORCA</h1>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-950 border border-cyan-800 text-cyan-300 font-mono">
+            <div className="flex items-center gap-2.5">
+              <h1 className="font-extrabold text-lg tracking-wider text-white uppercase font-mono">
+                ORCA
+              </h1>
+              <span className="text-xs text-cyan-400 font-semibold font-sans">
+                Living Marine Decision Intelligence
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-950 border border-cyan-800 text-cyan-300 font-mono font-bold">
                 SIH 2026 • PS 26176
               </span>
             </div>
-            <p className="text-xs text-slate-400">Marine Ecosystem Reasoning with Collaborative Agents</p>
+            <p className="text-[11px] text-slate-400 font-mono">
+              Operational Decision Lifecycle: Evaluate ➔ Track ➔ Watch ➔ Repair ➔ Outcome
+            </p>
           </div>
         </div>
 
         <div className="flex items-center gap-3 text-xs">
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 font-mono text-[11px]">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span>Fisherman: Raju</span>
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 font-mono text-[11px]">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>Vessel: Raju (Fisherman)</span>
+            <span className="text-slate-600">|</span>
+            <span className="text-cyan-400">Base: Kochi Port</span>
           </div>
+
           <button
             onClick={handleReset}
-            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-mono text-xs transition-all"
+            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-mono text-xs transition-all shadow-sm flex items-center gap-1.5"
           >
-            Reset State
+            <span>↻</span> Reset Demo State
           </button>
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 flex flex-col gap-5">
+      {/* Main Workspace Container */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-5 flex flex-col gap-4">
         
         {resetMessage && (
-          <div className="p-3 bg-emerald-950/60 border border-emerald-800 rounded-xl text-emerald-300 text-xs font-mono flex items-center gap-2">
+          <div className="p-3 bg-emerald-950/70 border border-emerald-700 rounded-xl text-emerald-300 text-xs font-mono flex items-center gap-2 shadow-md">
             <span>✓</span> {resetMessage}
           </div>
         )}
 
         {error && (
-          <div className="p-3 bg-rose-950/60 border border-rose-800 rounded-xl text-rose-300 text-xs font-mono flex items-center gap-2">
+          <div className="p-3 bg-rose-950/70 border border-rose-700 rounded-xl text-rose-300 text-xs font-mono flex items-center gap-2 shadow-md">
             <span>⚠️</span> {error}
           </div>
         )}
 
-        {/* Workstation Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* 2. Living Decision Lifecycle Visualizer (Always Visible) */}
+        <DecisionLifecycleBar
+          decision={activeTrackedDecision}
+          hasActiveDecision={Boolean(decision)}
+          onOpenDetails={() => activeTrackedDecision && setInspectedDecision(activeTrackedDecision)}
+        />
+
+        {/* 3. Primary Command Center Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
           
-          {/* Left Column: Interactive GIS Map */}
-          <div className="lg:col-span-7 flex flex-col gap-3">
+          {/* Left / Primary Area: Interactive Marine GIS Map */}
+          <div className="lg:col-span-7 flex flex-col gap-2">
             <div className="flex items-center justify-between px-1">
               <div>
-                <h2 className="text-xs font-bold text-white uppercase tracking-wider">
-                  Marine GIS & Potential Fishing Zone (PFZ) Map
+                <h2 className="text-xs font-bold text-white uppercase tracking-wider font-mono flex items-center gap-1.5">
+                  <span>🗺️</span> Marine GIS & Potential Fishing Zone Map
                 </h2>
-                <p className="text-[11px] text-slate-400">
-                  Arabian Sea Maritime Corridor off Kochi Port • Real Open-Meteo Waves & GeoJSON
+                <p className="text-[11px] text-slate-400 font-mono">
+                  Arabian Sea Maritime Corridor off Kochi • Real Open-Meteo Waves & GeoJSON
                 </p>
               </div>
               <span className="text-[11px] text-cyan-400 font-mono">
@@ -198,7 +225,7 @@ export default function Home() {
               </span>
             </div>
 
-            <div className="h-[540px]">
+            <div className="h-[520px]">
               <OrcaMap
                 zones={zones}
                 boundaries={boundaries}
@@ -210,58 +237,47 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Right Column: Tabbed Views (Chat, Decision Rules, Tracked Decisions Registry) */}
+          {/* Right / Primary Area: Workstation Panel (Active Decision / Mission Registry / Ask ORCA) */}
           <div className="lg:col-span-5 flex flex-col gap-2">
             
             {/* View Switcher Tabs */}
-            <div className="flex items-center gap-1.5 p-1 bg-slate-900 border border-slate-800 rounded-xl">
+            <div className="flex items-center gap-1 p-1 bg-slate-900 border border-slate-800 rounded-xl">
+              <button
+                onClick={() => setActiveTab('active')}
+                className={`flex-1 py-1.5 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-1.5 font-mono ${
+                  activeTab === 'active'
+                    ? 'bg-cyan-600 text-white shadow-md shadow-cyan-950/60'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <span>⚡</span> Active Decision
+              </button>
+              <button
+                onClick={() => setActiveTab('registry')}
+                className={`flex-1 py-1.5 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-1.5 font-mono ${
+                  activeTab === 'registry'
+                    ? 'bg-cyan-600 text-white shadow-md shadow-cyan-950/60'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <span>📋</span> Missions ({trackedDecisions.length})
+              </button>
               <button
                 onClick={() => setActiveTab('chat')}
-                className={`flex-1 py-1.5 rounded-lg font-semibold text-xs transition-all flex items-center justify-center gap-1 ${
+                className={`flex-1 py-1.5 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-1.5 font-mono ${
                   activeTab === 'chat'
-                    ? 'bg-cyan-600 text-white shadow-md'
+                    ? 'bg-cyan-600 text-white shadow-md shadow-cyan-950/60'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                <span>💬</span> Chat
-              </button>
-              <button
-                onClick={() => setActiveTab('decision')}
-                className={`flex-1 py-1.5 rounded-lg font-semibold text-xs transition-all flex items-center justify-center gap-1 ${
-                  activeTab === 'decision'
-                    ? 'bg-cyan-600 text-white shadow-md'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <span>⚡</span> Rules
-              </button>
-              <button
-                onClick={() => setActiveTab('tracked')}
-                className={`flex-1 py-1.5 rounded-lg font-semibold text-xs transition-all flex items-center justify-center gap-1.5 ${
-                  activeTab === 'tracked'
-                    ? 'bg-cyan-600 text-white shadow-md'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <span>📌</span> Tracked ({trackedDecisions.length})
+                <span>💬</span> Ask ORCA
               </button>
             </div>
 
-            {/* Tab 1: Conversational Chat */}
-            {activeTab === 'chat' && (
-              <ChatPanel
-                userOrigin={userOrigin}
-                zones={zones}
-                trackedDecisions={trackedDecisions}
-                onDecisionReceived={handleDecisionFromChat}
-                onDecisionTracked={handleDecisionTracked}
-              />
-            )}
-
-            {/* Tab 2: Decision Rules & Inspector */}
-            {activeTab === 'decision' && (
-              <div className="h-[540px]">
-                <DecisionPanel
+            {/* Tab Content Containers */}
+            <div className="h-[520px]">
+              {activeTab === 'active' && (
+                <ActiveDecisionCard
                   zones={zones}
                   selectedZone={selectedZone}
                   conditions={conditions}
@@ -271,40 +287,53 @@ export default function Home() {
                   onSelectZone={handleSelectZone}
                   onDecisionEvaluated={(res) => setDecision(res)}
                   onDecisionTracked={handleDecisionTracked}
+                  onOpenInspector={() => activeTrackedDecision && setInspectedDecision(activeTrackedDecision)}
                 />
-              </div>
-            )}
+              )}
 
-            {/* Tab 3: Tracked Decisions Registry */}
-            {activeTab === 'tracked' && (
-              <TrackedDecisionsList
-                decisions={trackedDecisions}
-                onSelectDecision={(dec) => setInspectedDecision(dec)}
-                onDecisionUpdated={handleDecisionUpdated}
-                onRefresh={handleRefreshDecisions}
-              />
-            )}
+              {activeTab === 'registry' && (
+                <MissionRegistry
+                  decisions={trackedDecisions}
+                  onSelectDecision={(dec) => setInspectedDecision(dec)}
+                  onDecisionUpdated={handleDecisionUpdated}
+                  onRefresh={handleRefreshDecisions}
+                />
+              )}
+
+              {activeTab === 'chat' && (
+                <AskOrcaDrawer
+                  userOrigin={userOrigin}
+                  zones={zones}
+                  trackedDecisions={trackedDecisions}
+                  onDecisionReceived={handleDecisionFromChat}
+                  onDecisionTracked={handleDecisionTracked}
+                  onOpenRegistry={() => setActiveTab('registry')}
+                />
+              )}
+            </div>
 
           </div>
 
         </div>
 
-        {/* Phase Status Bar */}
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3.5 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-3">
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded bg-emerald-950 border border-emerald-700 text-emerald-300 font-mono font-bold">
-              ✓ Phase 5 Ready
+        {/* System Telemetry Status Bar */}
+        <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-2 font-mono">
+          <div className="flex items-center gap-2.5">
+            <span className="px-2 py-0.5 rounded bg-emerald-950 border border-emerald-700 text-emerald-300 font-bold">
+              ✓ ORCA MISSION CONTROL READY
             </span>
-            <span>Decision Watch • Meaningful Change Detection • Impact Explanation • History Timeline</span>
+            <span className="text-[11px] text-slate-300">
+              Living Decision Object • Deterministic Safety Engine • Decision Watch • Repair Engine
+            </span>
           </div>
-          <div className="font-mono text-slate-500 text-[11px]">
-            Next: Phase 6 (Living Decision Repair & Wait Engine)
+          <div className="text-[11px] text-slate-500">
+            ISRO SIH 2026 • Prototype Architecture Complete
           </div>
         </div>
 
       </main>
 
-      {/* Decision Details Snapshot Modal */}
+      {/* Full Decision Inspector Modal */}
       {inspectedDecision && (
         <DecisionDetailsModal
           decision={inspectedDecision}
@@ -314,8 +343,8 @@ export default function Home() {
       )}
 
       {/* Footer */}
-      <footer className="border-t border-slate-800/80 py-3 px-6 text-center text-xs text-slate-500">
-        ORCA — Living Decision Lifecycle Prototype • ISRO SIH 2026
+      <footer className="border-t border-slate-800/80 py-2.5 px-6 text-center text-xs text-slate-500 font-mono">
+        ORCA — Living Marine Decision Intelligence Platform • Smart India Hackathon 2026
       </footer>
     </div>
   );
