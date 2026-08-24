@@ -1,33 +1,65 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { fetchHealth, fetchZones, resetDemo } from '@/lib/api';
-import { HealthResponse, ZoneInfo } from '@/lib/types';
+import { fetchHealth, fetchZones, fetchBoundaries, fetchConditions, resetDemo } from '@/lib/api';
+import { HealthResponse, ZoneInfo, BoundariesGeoJSON, MarineConditions, DecisionResult, Location } from '@/lib/types';
+import OrcaMap from '@/components/Map/OrcaMap';
+import DecisionPanel from '@/components/Decision/DecisionPanel';
 
 export default function Home() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [zones, setZones] = useState<ZoneInfo[]>([]);
+  const [boundaries, setBoundaries] = useState<BoundariesGeoJSON | null>(null);
+  const [selectedZone, setSelectedZone] = useState<ZoneInfo | null>(null);
+  const [conditions, setConditions] = useState<MarineConditions | null>(null);
+  const [decision, setDecision] = useState<DecisionResult | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastChecked, setLastChecked] = useState<string>('');
   const [resetMessage, setResetMessage] = useState<string | null>(null);
 
-  const checkConnection = async () => {
+  // Default User Location: Kochi Port, Kerala
+  const userOrigin: Location = {
+    lat: 9.966,
+    lon: 76.267,
+    name: 'Kochi Port (Fisherman Base)',
+  };
+
+  const loadInitialData = async () => {
     setLoading(true);
     setError(null);
-    setResetMessage(null);
     try {
-      const [healthData, zonesData] = await Promise.all([
+      const [healthData, zonesData, boundariesData] = await Promise.all([
         fetchHealth(),
-        fetchZones()
+        fetchZones(),
+        fetchBoundaries(),
       ]);
+
       setHealth(healthData);
       setZones(zonesData);
-      setLastChecked(new Date().toLocaleTimeString());
+      setBoundaries(boundariesData);
+
+      // Default select Zone B (Offshore West)
+      if (zonesData.length > 0) {
+        const defaultZone = zonesData.find((z) => z.zone_id === 'zone_b') || zonesData[0];
+        setSelectedZone(defaultZone);
+        const cond = await fetchConditions(defaultZone.zone_id);
+        setConditions(cond);
+      }
     } catch (err: any) {
-      setError(err.message || 'Failed to connect to backend server');
+      setError(err.message || 'Failed to initialize ORCA marine platform');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSelectZone = async (zone: ZoneInfo) => {
+    setSelectedZone(zone);
+    setDecision(null); // Reset evaluation when zone changes
+    try {
+      const cond = await fetchConditions(zone.zone_id);
+      setConditions(cond);
+    } catch (err: any) {
+      console.error('Failed to load zone conditions:', err);
     }
   };
 
@@ -35,6 +67,7 @@ export default function Home() {
     try {
       const res = await resetDemo();
       setResetMessage(res.message);
+      setDecision(null);
       setTimeout(() => setResetMessage(null), 3000);
     } catch (err: any) {
       setError('Reset failed: ' + err.message);
@@ -42,194 +75,121 @@ export default function Home() {
   };
 
   useEffect(() => {
-    checkConnection();
+    loadInitialData();
   }, []);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       {/* Top Navbar */}
-      <header className="border-b border-slate-800 bg-slate-900/60 backdrop-blur px-6 py-4 flex items-center justify-between sticky top-0 z-10">
+      <header className="border-b border-slate-800 bg-slate-900/70 backdrop-blur px-6 py-3.5 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold text-xl">
+          <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold text-xl shadow-md shadow-cyan-950">
             🐋
           </div>
           <div>
-            <h1 className="font-semibold text-lg tracking-wide text-white">ORCA</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="font-bold text-lg tracking-wide text-white">ORCA</h1>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-950 border border-cyan-800 text-cyan-300 font-mono">
+                SIH 2026 • PS 26176
+              </span>
+            </div>
             <p className="text-xs text-slate-400">Marine Ecosystem Reasoning with Collaborative Agents</p>
           </div>
         </div>
+
         <div className="flex items-center gap-3 text-xs">
-          <span className="px-2.5 py-1 rounded-full bg-cyan-950/80 border border-cyan-700/50 text-cyan-300 font-medium">
-            SIH 2026 • PS 26176
-          </span>
-          <span className="px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300 font-medium">
-            Phase 1: Foundation
-          </span>
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 font-mono">
+            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+            <span>Role: Fisherman</span>
+          </div>
+          <button
+            onClick={handleReset}
+            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-mono text-xs transition-all"
+          >
+            Reset State
+          </button>
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-5xl w-full mx-auto p-6 md:p-10 flex flex-col gap-8">
+      {/* Main Container */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 flex flex-col gap-6">
         
-        {/* Hero Section */}
-        <div className="bg-gradient-to-br from-slate-900 to-slate-900/50 border border-slate-800 rounded-2xl p-6 md:p-8 shadow-xl">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <span className="text-cyan-400 font-mono text-xs uppercase tracking-widest">Phase 1 — Complete & Verified</span>
-              <h2 className="text-2xl md:text-3xl font-bold text-white mt-1">
-                Project Foundation & State Architecture
-              </h2>
-              <p className="text-slate-400 text-sm mt-2 max-w-2xl leading-relaxed">
-                Frontend & Backend communication established. Deterministic rules, Decision Object store, and data adapter scaffolding are ready for Phase 2 data ingestion & decision evaluation.
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={checkConnection}
-                disabled={loading}
-                className="px-4 py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-medium rounded-xl text-sm transition-all shadow-lg shadow-cyan-950 flex items-center gap-2"
-              >
-                {loading ? (
-                  <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                ) : (
-                  <span>⚡</span>
-                )}
-                Ping Backend Health
-              </button>
-            </div>
+        {/* Reset Feedback */}
+        {resetMessage && (
+          <div className="p-3 bg-emerald-950/60 border border-emerald-800 rounded-xl text-emerald-300 text-xs font-mono flex items-center gap-2">
+            <span>✓</span> {resetMessage}
           </div>
-        </div>
+        )}
 
-        {/* Connection Diagnostics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {error && (
+          <div className="p-3.5 bg-rose-950/60 border border-rose-800 rounded-xl text-rose-300 text-xs font-mono flex items-center gap-2">
+            <span>⚠️</span> {error}
+          </div>
+        )}
+
+        {/* Phase 2 Interactive Workstation Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
-          {/* Backend Health Status */}
-          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-                <span className="text-sm font-semibold text-slate-200">Backend Status</span>
-                {loading ? (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" /> Connecting
-                  </span>
-                ) : health ? (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Connected (200 OK)
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20">
-                    <span className="w-1.5 h-1.5 rounded-full bg-rose-400" /> Offline
-                  </span>
-                )}
+          {/* Left Column: Interactive GIS Map */}
+          <div className="lg:col-span-7 flex flex-col gap-3">
+            <div className="flex items-center justify-between px-1">
+              <div>
+                <h2 className="text-sm font-bold text-white uppercase tracking-wider">
+                  Marine GIS & Potential Fishing Zone (PFZ) Map
+                </h2>
+                <p className="text-xs text-slate-400">
+                  Arabian Sea Maritime Corridor off Kochi Port • Real Open-Meteo Waves
+                </p>
               </div>
-
-              {error && (
-                <div className="mt-4 p-3.5 bg-rose-950/40 border border-rose-800/50 rounded-xl text-rose-300 text-xs font-mono">
-                  {error}
-                </div>
-              )}
-
-              {health && (
-                <div className="mt-4 space-y-2.5 text-xs">
-                  <div className="flex justify-between py-1 border-b border-slate-800/60">
-                    <span className="text-slate-400">Service:</span>
-                    <span className="text-slate-200 font-medium">{health.service}</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-slate-800/60">
-                    <span className="text-slate-400">Version:</span>
-                    <span className="text-slate-200 font-mono">{health.version}</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-slate-800/60">
-                    <span className="text-slate-400">Database:</span>
-                    <span className="text-emerald-400 font-medium">{health.details.database}</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-slate-800/60">
-                    <span className="text-slate-400">Decision Engine:</span>
-                    <span className="text-slate-200">{health.details.decision_engine}</span>
-                  </div>
-                  <div className="flex justify-between py-1">
-                    <span className="text-slate-400">Last Synced:</span>
-                    <span className="text-cyan-400 font-mono">{lastChecked}</span>
-                  </div>
-                </div>
-              )}
+              <span className="text-xs text-cyan-400 font-mono">
+                {zones.length} Zones • {boundaries?.features.length || 0} Boundaries
+              </span>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between">
-              <span className="text-[11px] text-slate-500 font-mono">Endpoint: /api/health</span>
-              <button
-                onClick={handleReset}
-                className="text-xs text-slate-400 hover:text-slate-200 underline font-mono"
-              >
-                Reset Demo State
-              </button>
+            <div className="h-[540px]">
+              <OrcaMap
+                zones={zones}
+                boundaries={boundaries}
+                selectedZone={selectedZone}
+                decision={decision}
+                userOrigin={userOrigin}
+                onSelectZone={handleSelectZone}
+              />
             </div>
-            {resetMessage && (
-              <p className="text-xs text-emerald-400 mt-2 font-mono">{resetMessage}</p>
-            )}
           </div>
 
-          {/* Preloaded Scaffolding & Zones */}
-          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-                <span className="text-sm font-semibold text-slate-200">Preloaded Demo Zones</span>
-                <span className="text-xs font-mono text-cyan-400">{zones.length} Zones Ready</span>
-              </div>
-
-              <div className="mt-4 space-y-2.5">
-                {zones.map((zone) => (
-                  <div
-                    key={zone.zone_id}
-                    className="p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl flex items-center justify-between text-xs"
-                  >
-                    <div>
-                      <span className="font-semibold text-white">{zone.zone_name}</span>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        Distance: {zone.distance_km} km • Lat: {zone.centroid.lat}, Lon: {zone.centroid.lon}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <span className="px-2 py-0.5 rounded bg-cyan-950 border border-cyan-800 text-cyan-300 font-mono text-[11px]">
-                        PFZ: {zone.pfz_score}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 font-mono">
-              <span>Endpoint: /api/zones</span>
-              <span>Ready for Leaflet in Phase 2</span>
-            </div>
+          {/* Right Column: Deterministic Decision Engine Panel */}
+          <div className="lg:col-span-5">
+            <DecisionPanel
+              zones={zones}
+              selectedZone={selectedZone}
+              conditions={conditions}
+              decision={decision}
+              userOrigin={userOrigin}
+              onSelectZone={handleSelectZone}
+              onDecisionEvaluated={(res) => setDecision(res)}
+            />
           </div>
 
         </div>
 
-        {/* Phase Blueprint Tracker */}
-        <div className="bg-slate-900/40 border border-slate-800/60 rounded-2xl p-6">
-          <h3 className="text-sm font-semibold text-slate-200 mb-4">Architecture Roadmap & Execution Plan</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-            <div className="p-3.5 bg-cyan-950/30 border border-cyan-800/50 rounded-xl">
-              <span className="font-bold text-cyan-400 block mb-1">✓ Phase 1: Foundation</span>
-              <p className="text-slate-400">FastAPI, Next.js, SQLite Decision Store, CORS, and Config Schemas established.</p>
-            </div>
-            <div className="p-3.5 bg-slate-950/50 border border-slate-800 rounded-xl opacity-75">
-              <span className="font-bold text-slate-300 block mb-1">Phase 2: Data & Decision Engine</span>
-              <p className="text-slate-500">Open-Meteo adapter, Leaflet map integration, boundary checks, and GO/CAUTION/WAIT engine.</p>
-            </div>
-            <div className="p-3.5 bg-slate-950/50 border border-slate-800 rounded-xl opacity-75">
-              <span className="font-bold text-slate-300 block mb-1">Phase 3+: Living Lifecycle</span>
-              <p className="text-slate-500">Track Decision, simulated condition change, impact checks, and verified repair options.</p>
-            </div>
+        {/* Phase Status Bar */}
+        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-3">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 rounded bg-emerald-950 border border-emerald-700 text-emerald-300 font-mono font-bold">
+              ✓ Phase 2 Ready
+            </span>
+            <span>Deterministic Rule Engine • Point-in-Polygon Geofencing • Live Marine Weather</span>
+          </div>
+          <div className="font-mono text-slate-500">
+            Next: Phase 3 (Gemini Intent & Explanation Layer)
           </div>
         </div>
 
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800/80 py-4 px-6 text-center text-xs text-slate-500">
+      <footer className="border-t border-slate-800/80 py-3.5 px-6 text-center text-xs text-slate-500">
         ORCA — Living Decision Lifecycle Prototype • ISRO SIH 2026
       </footer>
     </div>

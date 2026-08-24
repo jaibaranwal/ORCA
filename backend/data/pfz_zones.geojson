@@ -1,0 +1,83 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "zone_id": "zone_a",
+        "zone_name": "Zone A (Coastal South)",
+        "pfz_score": 72,
+        "pfz_label": "Moderate",
+        "sst_celsius": 28.6,
+        "chlorophyll_mg_m3": 1.45,
+        "depth_m": 32,
+        "distance_km": 28.5,
+        "description": "Nearshore shallow ground with moderate pelagic fish aggregation."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [76.05, 9.65],
+            [76.25, 9.65],
+            [76.25, 9.85],
+            [76.05, 9.85],
+            [76.05, 9.65]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "zone_id": "zone_b",
+        "zone_name": "Zone B (Offshore West)",
+        "pfz_score": 86,
+        "pfz_label": "High",
+        "sst_celsius": 27.8,
+        "chlorophyll_mg_m3": 2.80,
+        "depth_m": 65,
+        "distance_km": 18.0,
+        "description": "Thermal front boundary with high chlorophyll concentration and good tuna/mackerel potential."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [75.80, 9.95],
+            [76.10, 9.95],
+            [76.10, 10.20],
+            [75.80, 10.20],
+            [75.80, 9.95]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "zone_id": "zone_c",
+        "zone_name": "Zone C (Deep North)",
+        "pfz_score": 91,
+        "pfz_label": "Very High",
+        "sst_celsius": 27.2,
+        "chlorophyll_mg_m3": 3.40,
+        "depth_m": 120,
+        "distance_km": 54.0,
+        "description": "Deep water upwelling front with very high primary productivity."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [75.60, 10.35],
+            [75.90, 10.35],
+            [75.90, 10.65],
+            [75.60, 10.65],
+            [75.60, 10.35]
+          ]
+        ]
+      }
+    }
+  ]
+}

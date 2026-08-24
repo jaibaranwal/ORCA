@@ -4,6 +4,23 @@ export interface Location {
   name?: string;
 }
 
+export interface MarineConditions {
+  timestamp: string;
+  location: Location;
+  wave_height_m: number;
+  wave_direction_deg: number;
+  wave_period_s: number;
+  wind_speed_kmh: number;
+  wind_direction_deg: number;
+  current_speed_ms: number;
+  weather_code: number;
+  visibility_km: number;
+  lightning_alert: boolean;
+  cyclone_alert: boolean;
+  sst_celsius?: number;
+  data_source: string;
+}
+
 export interface HealthResponse {
   status: string;
   service: string;
@@ -13,8 +30,10 @@ export interface HealthResponse {
   details: {
     database: string;
     decision_engine: string;
-    gemini_integration: string;
-    environment: string;
+    boundary_checker?: string;
+    data_collection?: string;
+    gemini_integration?: string;
+    environment?: string;
     [key: string]: any;
   };
 }
@@ -24,31 +43,62 @@ export interface ZoneInfo {
   zone_name: string;
   pfz_score: number;
   pfz_label: string;
-  centroid: {
+  centroid?: {
     lat: number;
     lon: number;
     name?: string;
   };
+  sst_celsius?: number;
+  chlorophyll_mg_m3?: number;
+  depth_m?: number;
   distance_km: number;
-  restricted: boolean;
+  restricted?: boolean;
+  description?: string;
+  coordinates?: number[][][];
 }
 
-export interface DecisionObject {
-  decision_id: string;
-  created_at: string;
-  updated_at: string;
-  user: {
-    user_id: string;
-    user_role: string;
+export interface DecisionResult {
+  zone_id: string;
+  zone_name: string;
+  status: 'GO' | 'CAUTION' | 'WAIT';
+  score: number;
+  safety_score: number;
+  fishing_score: number;
+  effort_score: number;
+  boundary_violation: boolean;
+  hard_stop: boolean;
+  reasons: string[];
+  explanation?: string;
+  conditions: MarineConditions;
+  thresholds_used: Record<string, any>;
+  data_source: string;
+}
+
+export interface DecisionRequest {
+  user_id: string;
+  zone_id: string;
+  planned_start: string;
+  planned_return: string;
+  user_role: string;
+  origin: Location;
+}
+
+export interface BoundaryFeature {
+  type: string;
+  properties: {
+    boundary_id: string;
     name: string;
-    language: string;
+    type: string;
+    restriction_level: string;
+    description: string;
   };
-  mission: {
-    purpose: string;
-    zone_id: string;
-    zone_name: string;
+  geometry: {
+    type: string;
+    coordinates: number[][][];
   };
-  current_status: string;
-  tracking_status: string;
-  [key: string]: any;
+}
+
+export interface BoundariesGeoJSON {
+  type: string;
+  features: BoundaryFeature[];
 }

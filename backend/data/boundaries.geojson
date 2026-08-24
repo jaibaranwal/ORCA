@@ -1,0 +1,49 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "boundary_id": "restricted_naval_zone",
+        "name": "Naval Exercise Restricted Sector Charlie",
+        "type": "military_restricted",
+        "restriction_level": "STRICT_NO_ENTRY",
+        "description": "Restricted maritime defense corridor. Civil fishing strictly prohibited."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [75.30, 10.50],
+            [75.58, 10.50],
+            [75.58, 10.80],
+            [75.30, 10.80],
+            [75.30, 10.50]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundary_id": "marine_sanctuary_alpha",
+        "name": "Vembanad Coastal Ecological Buffer",
+        "type": "ecological_protected",
+        "restriction_level": "CONTROLLED_ACCESS",
+        "description": "Marine protected breeding sanctuary. Trawling prohibited."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [76.28, 9.50],
+            [76.35, 9.50],
+            [76.35, 9.70],
+            [76.28, 9.70],
+            [76.28, 9.50]
+          ]
+        ]
+      }
+    }
+  ]
+}
