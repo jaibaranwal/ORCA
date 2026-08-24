@@ -2,14 +2,17 @@ from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 from datetime import datetime
 
-class Location(BaseModel):
+class GeoLocation(BaseModel):
     lat: float
     lon: float
     name: Optional[str] = None
 
+# Alias Location for backward compatibility
+Location = GeoLocation
+
 class MarineConditions(BaseModel):
     timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
-    location: Location
+    location: GeoLocation
     wave_height_m: float
     wave_direction_deg: float = 0.0
     wave_period_s: float = 0.0
@@ -28,7 +31,7 @@ class ZoneInfo(BaseModel):
     zone_name: str
     pfz_score: int
     pfz_label: str
-    centroid: Location
+    centroid: GeoLocation
     polygon: Optional[List[List[float]]] = None
     distance_km: float = 0.0
     boundary_violation: bool = False
@@ -37,10 +40,10 @@ class ZoneInfo(BaseModel):
 class DecisionRequest(BaseModel):
     user_id: str = "user_demo_fisherman"
     zone_id: str
-    planned_start: str
-    planned_return: str
+    planned_start: Optional[str] = None
+    planned_return: Optional[str] = None
     user_role: str = "fisherman"
-    origin: Location
+    origin: GeoLocation
 
 class DecisionResult(BaseModel):
     zone_id: str
@@ -58,11 +61,73 @@ class DecisionResult(BaseModel):
     thresholds_used: Dict[str, Any] = {}
     data_source: str = "demo"
 
+class UserProfile(BaseModel):
+    user_id: str = "user_demo_fisherman"
+    user_role: str = "fisherman"
+    name: str = "Raju (Fisherman)"
+    language: str = "en"
+    origin: GeoLocation
+
+class MissionDetails(BaseModel):
+    purpose: str = "fishing"
+    zone_id: str
+    zone_name: str
+    destination: Optional[GeoLocation] = None
+    planned_start: str
+    planned_return: Optional[str] = None
+    original_query: Optional[str] = None
+
+class DecisionSnapshot(BaseModel):
+    status: str  # "GO" | "CAUTION" | "WAIT"
+    score: int
+    safety_score: int
+    fishing_score: int
+    effort_score: int
+    boundary_violation: bool = False
+    hard_stop: bool = False
+    reasons: List[str] = []
+    explanation: Optional[str] = None
+
+class DecisionObject(BaseModel):
+    decision_id: str
+    created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+    updated_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+    last_checked_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+    user: UserProfile
+    mission: MissionDetails
+    original_decision: DecisionSnapshot
+    original_conditions: MarineConditions
+    thresholds_snapshot: Dict[str, Any]
+    lifecycle_status: str = "TRACKING"  # ACTIVE | TRACKING | CHANGED | REPAIRED | WAITING | CANCELLED
+    tracking_enabled: bool = True
+    current_status: str = "TRACKING"  # Synced with lifecycle_status
+    change_history: List[Dict[str, Any]] = []
+    repair_options: List[Dict[str, Any]] = []
+    selected_action: Optional[Dict[str, Any]] = None
+    feedback: Optional[Dict[str, Any]] = None
+
+class TrackDecisionRequest(BaseModel):
+    decision_result: Optional[DecisionResult] = None
+    zone_id: Optional[str] = None
+    user_id: str = "user_demo_fisherman"
+    user_name: str = "Raju (Fisherman)"
+    language: str = "en"
+    planned_start: Optional[str] = None
+    planned_return: Optional[str] = None
+    origin: Optional[GeoLocation] = None
+    original_query: Optional[str] = None
+
+class TrackDecisionResponse(BaseModel):
+    decision_id: str
+    status: str
+    message: str
+    decision: DecisionObject
+
 class QueryRequest(BaseModel):
     message: str
     user_id: str = "user_demo_fisherman"
     language: Optional[str] = None
-    origin: Optional[Location] = None
+    origin: Optional[GeoLocation] = None
 
 class QueryResponse(BaseModel):
     message: str

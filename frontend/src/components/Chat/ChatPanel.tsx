@@ -1,13 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { ChatMessage, DecisionResult, GeoLocation, ZoneInfo } from '@/lib/types';
-import { sendQuery } from '@/lib/api';
+import { ChatMessage, DecisionResult, GeoLocation, ZoneInfo, DecisionObject } from '@/lib/types';
+import { sendQuery, trackDecision } from '@/lib/api';
 
 interface ChatPanelProps {
   userOrigin: GeoLocation;
   zones: ZoneInfo[];
+  trackedDecisions: DecisionObject[];
   onDecisionReceived: (decision: DecisionResult, zoneId: string) => void;
+  onDecisionTracked: (tracked: DecisionObject) => void;
 }
 
 const QUICK_PROMPTS = [
@@ -20,7 +22,9 @@ const QUICK_PROMPTS = [
 export default function ChatPanel({
   userOrigin,
   zones,
+  trackedDecisions,
   onDecisionReceived,
+  onDecisionTracked,
 }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -32,6 +36,7 @@ export default function ChatPanel({
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [trackingId, setTrackingId] = useState<string | null>(null);
 
   const handleSend = async (queryText?: string) => {
     const textToSend = queryText || input;
@@ -79,6 +84,25 @@ export default function ChatPanel({
     }
   };
 
+  const handleTrackFromChat = async (decision: DecisionResult, msgId: string) => {
+    setTrackingId(msgId);
+    try {
+      const res = await trackDecision({
+        decision_result: decision,
+        zone_id: decision.zone_id,
+        user_id: 'user_demo_fisherman',
+        user_name: 'Raju (Fisherman)',
+        origin: userOrigin,
+        planned_start: new Date().toISOString(),
+      });
+      onDecisionTracked(res.decision);
+    } catch (err: any) {
+      console.error('Failed to track decision from chat:', err);
+    } finally {
+      setTrackingId(null);
+    }
+  };
+
   return (
     <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col justify-between h-[540px] shadow-2xl backdrop-blur">
       {/* Chat Header */}
@@ -117,21 +141,42 @@ export default function ChatPanel({
               <p className="leading-relaxed whitespace-pre-wrap text-xs">{m.text}</p>
 
               {m.decision && (
-                <div className="mt-2 pt-1.5 border-t border-slate-800/80 flex items-center justify-between text-[10px]">
-                  <span className="font-semibold text-white">
-                    {m.decision.zone_name}:{' '}
-                    <strong
-                      className={
-                        m.decision.status === 'GO'
-                          ? 'text-emerald-400'
-                          : m.decision.status === 'CAUTION'
-                          ? 'text-amber-400'
-                          : 'text-rose-400'
-                      }
+                <div className="mt-2 pt-2 border-t border-slate-800/80 space-y-1.5">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="font-semibold text-white">
+                      {m.decision.zone_name}:{' '}
+                      <strong
+                        className={
+                          m.decision.status === 'GO'
+                            ? 'text-emerald-400'
+                            : m.decision.status === 'CAUTION'
+                            ? 'text-amber-400'
+                            : 'text-rose-400'
+                        }
+                      >
+                        {m.decision.status} ({m.decision.score}/100)
+                      </strong>
+                    </span>
+                  </div>
+
+                  {/* Inline Track Button inside Chat */}
+                  {trackedDecisions.some((d) => d.mission.zone_id === m.decision?.zone_id && d.lifecycle_status === 'TRACKING') ? (
+                    <span className="inline-block text-[10px] text-emerald-400 font-mono font-semibold">
+                      ✓ Decision Tracked
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => m.decision && handleTrackFromChat(m.decision, m.id)}
+                      disabled={trackingId === m.id}
+                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold rounded-lg font-mono transition-all flex items-center gap-1 shadow-md"
                     >
-                      {m.decision.status} ({m.decision.score}/100)
-                    </strong>
-                  </span>
+                      {trackingId === m.id ? (
+                        <span>Registering...</span>
+                      ) : (
+                        <span>📌 Track Decision</span>
+                      )}
+                    </button>
+                  )}
                 </div>
               )}
             </div>

@@ -1,11 +1,28 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { fetchHealth, fetchZones, fetchBoundaries, fetchConditions, resetDemo } from '@/lib/api';
-import { HealthResponse, ZoneInfo, BoundariesGeoJSON, MarineConditions, DecisionResult, GeoLocation } from '@/lib/types';
+import { 
+  fetchHealth, 
+  fetchZones, 
+  fetchBoundaries, 
+  fetchConditions, 
+  fetchDecisions,
+  resetDemo 
+} from '@/lib/api';
+import { 
+  HealthResponse, 
+  ZoneInfo, 
+  BoundariesGeoJSON, 
+  MarineConditions, 
+  DecisionResult, 
+  GeoLocation,
+  DecisionObject 
+} from '@/lib/types';
 import OrcaMap from '@/components/Map/OrcaMap';
 import DecisionPanel from '@/components/Decision/DecisionPanel';
 import ChatPanel from '@/components/Chat/ChatPanel';
+import TrackedDecisionsList from '@/components/Decision/TrackedDecisionsList';
+import DecisionDetailsModal from '@/components/Decision/DecisionDetailsModal';
 
 export default function Home() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
@@ -14,12 +31,14 @@ export default function Home() {
   const [selectedZone, setSelectedZone] = useState<ZoneInfo | null>(null);
   const [conditions, setConditions] = useState<MarineConditions | null>(null);
   const [decision, setDecision] = useState<DecisionResult | null>(null);
-  const [activeTab, setActiveTab] = useState<'decision' | 'chat'>('chat');
+  const [trackedDecisions, setTrackedDecisions] = useState<DecisionObject[]>([]);
+  const [inspectedDecision, setInspectedDecision] = useState<DecisionObject | null>(null);
+  const [activeTab, setActiveTab] = useState<'chat' | 'decision' | 'tracked'>('chat');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
 
-  // Default User GeoLocation: Kochi Port, Kerala
+  // Default User Location: Kochi Port, Kerala
   const userOrigin: GeoLocation = {
     lat: 9.966,
     lon: 76.267,
@@ -30,15 +49,17 @@ export default function Home() {
     setLoading(true);
     setError(null);
     try {
-      const [healthData, zonesData, boundariesData] = await Promise.all([
+      const [healthData, zonesData, boundariesData, decisionsData] = await Promise.all([
         fetchHealth(),
         fetchZones(),
         fetchBoundaries(),
+        fetchDecisions(),
       ]);
 
       setHealth(healthData);
       setZones(zonesData);
       setBoundaries(boundariesData);
+      setTrackedDecisions(decisionsData);
 
       if (zonesData.length > 0) {
         const defaultZone = zonesData.find((z) => z.zone_id === 'zone_b') || zonesData[0];
@@ -71,14 +92,30 @@ export default function Home() {
     }
   };
 
+  const handleDecisionTracked = (tracked: DecisionObject) => {
+    setTrackedDecisions((prev) => [tracked, ...prev.filter((d) => d.decision_id !== tracked.decision_id)]);
+    setActiveTab('tracked');
+  };
+
   const handleReset = async () => {
     try {
       const res = await resetDemo();
       setResetMessage(res.message);
       setDecision(null);
+      setTrackedDecisions([]);
+      setInspectedDecision(null);
       setTimeout(() => setResetMessage(null), 3000);
     } catch (err: any) {
       setError('Reset failed: ' + err.message);
+    }
+  };
+
+  const handleRefreshDecisions = async () => {
+    try {
+      const data = await fetchDecisions();
+      setTrackedDecisions(data);
+    } catch (err) {
+      console.error('Refresh decisions failed', err);
     }
   };
 
@@ -108,7 +145,7 @@ export default function Home() {
         <div className="flex items-center gap-3 text-xs">
           <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 font-mono text-[11px]">
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span>Fisherman Workstation</span>
+            <span>Fisherman: Raju</span>
           </div>
           <button
             onClick={handleReset}
@@ -134,7 +171,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* Phase 3 Interactive Grid */}
+        {/* Phase 4 Workstation Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           
           {/* Left Column: Interactive GIS Map */}
@@ -165,41 +202,56 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Right Column: Tabbed Conversational Assistant & Deterministic Rules */}
+          {/* Right Column: Tabbed Views (Chat, Decision Rules, Tracked Decisions Registry) */}
           <div className="lg:col-span-5 flex flex-col gap-2">
             
             {/* View Switcher Tabs */}
-            <div className="flex items-center gap-2 p-1 bg-slate-900 border border-slate-800 rounded-xl">
+            <div className="flex items-center gap-1.5 p-1 bg-slate-900 border border-slate-800 rounded-xl">
               <button
                 onClick={() => setActiveTab('chat')}
-                className={`flex-1 py-1.5 rounded-lg font-semibold text-xs transition-all flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-1.5 rounded-lg font-semibold text-xs transition-all flex items-center justify-center gap-1 ${
                   activeTab === 'chat'
                     ? 'bg-cyan-600 text-white shadow-md'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                <span>💬</span> Natural Language Chat
+                <span>💬</span> Chat
               </button>
               <button
                 onClick={() => setActiveTab('decision')}
-                className={`flex-1 py-1.5 rounded-lg font-semibold text-xs transition-all flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-1.5 rounded-lg font-semibold text-xs transition-all flex items-center justify-center gap-1 ${
                   activeTab === 'decision'
                     ? 'bg-cyan-600 text-white shadow-md'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                <span>⚡</span> Decision Rules & Inspector
+                <span>⚡</span> Rules
+              </button>
+              <button
+                onClick={() => setActiveTab('tracked')}
+                className={`flex-1 py-1.5 rounded-lg font-semibold text-xs transition-all flex items-center justify-center gap-1.5 ${
+                  activeTab === 'tracked'
+                    ? 'bg-cyan-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <span>📌</span> Tracked ({trackedDecisions.length})
               </button>
             </div>
 
-            {/* Tab Views */}
-            {activeTab === 'chat' ? (
+            {/* Tab 1: Conversational Chat */}
+            {activeTab === 'chat' && (
               <ChatPanel
                 userOrigin={userOrigin}
                 zones={zones}
+                trackedDecisions={trackedDecisions}
                 onDecisionReceived={handleDecisionFromChat}
+                onDecisionTracked={handleDecisionTracked}
               />
-            ) : (
+            )}
+
+            {/* Tab 2: Decision Rules & Inspector */}
+            {activeTab === 'decision' && (
               <div className="h-[540px]">
                 <DecisionPanel
                   zones={zones}
@@ -207,10 +259,21 @@ export default function Home() {
                   conditions={conditions}
                   decision={decision}
                   userOrigin={userOrigin}
+                  trackedDecisions={trackedDecisions}
                   onSelectZone={handleSelectZone}
                   onDecisionEvaluated={(res) => setDecision(res)}
+                  onDecisionTracked={handleDecisionTracked}
                 />
               </div>
+            )}
+
+            {/* Tab 3: Tracked Decisions Registry */}
+            {activeTab === 'tracked' && (
+              <TrackedDecisionsList
+                decisions={trackedDecisions}
+                onSelectDecision={(dec) => setInspectedDecision(dec)}
+                onRefresh={handleRefreshDecisions}
+              />
             )}
 
           </div>
@@ -221,16 +284,30 @@ export default function Home() {
         <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3.5 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-3">
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 rounded bg-emerald-950 border border-emerald-700 text-emerald-300 font-mono font-bold">
-              ✓ Phase 3 Ready
+              ✓ Phase 4 Ready
             </span>
-            <span>Gemini Intent Extraction • Grounded Multilingual Explanation • Deterministic Safety Rule Engine</span>
+            <span>Living Decision Object • Persistent SQLite Store • Immutable Snapshot</span>
           </div>
           <div className="font-mono text-slate-500 text-[11px]">
-            Next: Phase 4 (Decision Object & Track Decision)
+            Next: Phase 5 (Decision Watch & Condition Change Detection)
           </div>
         </div>
 
       </main>
+
+      {/* Decision Details Snapshot Modal */}
+      {inspectedDecision && (
+        <DecisionDetailsModal
+          decision={inspectedDecision}
+          onClose={() => setInspectedDecision(null)}
+          onDecisionUpdated={(updated) => {
+            setInspectedDecision(updated);
+            setTrackedDecisions((prev) =>
+              prev.map((d) => (d.decision_id === updated.decision_id ? updated : d))
+            );
+          }}
+        />
+      )}
 
       {/* Footer */}
       <footer className="border-t border-slate-800/80 py-3 px-6 text-center text-xs text-slate-500">

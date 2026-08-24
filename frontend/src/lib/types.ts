@@ -33,6 +33,7 @@ export interface HealthResponse {
     boundary_checker?: string;
     query_understanding?: string;
     explanation_engine?: string;
+    living_lifecycle?: string;
     data_collection?: string;
     gemini_integration?: string;
     environment?: string;
@@ -79,10 +80,78 @@ export interface DecisionResult {
 export interface DecisionRequest {
   user_id: string;
   zone_id: string;
-  planned_start: string;
-  planned_return: string;
+  planned_start?: string;
+  planned_return?: string;
   user_role: string;
   origin: GeoLocation;
+}
+
+export interface UserProfile {
+  user_id: string;
+  user_role: string;
+  name: string;
+  language: string;
+  origin: GeoLocation;
+}
+
+export interface MissionDetails {
+  purpose: string;
+  zone_id: string;
+  zone_name: string;
+  destination?: GeoLocation;
+  planned_start: string;
+  planned_return?: string;
+  original_query?: string;
+}
+
+export interface DecisionSnapshot {
+  status: 'GO' | 'CAUTION' | 'WAIT';
+  score: number;
+  safety_score: number;
+  fishing_score: number;
+  effort_score: number;
+  boundary_violation: boolean;
+  hard_stop: boolean;
+  reasons: string[];
+  explanation?: string;
+}
+
+export interface DecisionObject {
+  decision_id: string;
+  created_at: string;
+  updated_at: string;
+  last_checked_at: string;
+  user: UserProfile;
+  mission: MissionDetails;
+  original_decision: DecisionSnapshot;
+  original_conditions: MarineConditions;
+  thresholds_snapshot: Record<string, any>;
+  lifecycle_status: string;
+  tracking_enabled: boolean;
+  current_status: string;
+  change_history: any[];
+  repair_options: any[];
+  selected_action?: any;
+  feedback?: any;
+}
+
+export interface TrackDecisionRequest {
+  decision_result?: DecisionResult;
+  zone_id?: string;
+  user_id?: string;
+  user_name?: string;
+  language?: string;
+  planned_start?: string;
+  planned_return?: string;
+  origin?: GeoLocation;
+  original_query?: string;
+}
+
+export interface TrackDecisionResponse {
+  decision_id: string;
+  status: string;
+  message: string;
+  decision: DecisionObject;
 }
 
 export interface BoundaryFeature {

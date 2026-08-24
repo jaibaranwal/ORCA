@@ -6,7 +6,10 @@ import {
   BoundariesGeoJSON,
   MarineConditions,
   GeoLocation,
-  QueryResponse
+  QueryResponse,
+  DecisionObject,
+  TrackDecisionRequest,
+  TrackDecisionResponse
 } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
@@ -63,6 +66,38 @@ export async function sendQuery(message: string, language?: string, origin?: Geo
     cache: 'no-store',
   });
   if (!res.ok) throw new Error(`Natural language query failed: ${res.status}`);
+  return res.json();
+}
+
+export async function trackDecision(req: TrackDecisionRequest): Promise<TrackDecisionResponse> {
+  const res = await fetch(`${API_BASE_URL}/decisions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req),
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Track decision failed: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchDecisions(): Promise<DecisionObject[]> {
+  const res = await fetch(`${API_BASE_URL}/decisions`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to list decisions: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchSingleDecision(decisionId: string): Promise<DecisionObject> {
+  const res = await fetch(`${API_BASE_URL}/decisions/${decisionId}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch decision details: ${res.status}`);
+  return res.json();
+}
+
+export async function cancelDecision(decisionId: string): Promise<{ status: string; message: string; decision: DecisionObject }> {
+  const res = await fetch(`${API_BASE_URL}/decisions/${decisionId}/cancel`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Cancel decision failed: ${res.status}`);
   return res.json();
 }
 
