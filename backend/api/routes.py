@@ -20,7 +20,9 @@ from models.schemas import (
     RecheckResponse,
     RepairResponse,
     SelectRepairRequest,
-    SelectRepairResponse
+    SelectRepairResponse,
+    MissionFeedback,
+    FeedbackResponse
 )
 from modules.decision_store import (
     create_and_store_decision,
@@ -35,6 +37,7 @@ from modules.query_understanding import understand_user_query
 from modules.explanation import explain_decision
 from modules.decision_watch import check_decision_conditions
 from modules.decision_repair import generate_repair_options, apply_repair_selection
+from modules.decision_feedback import record_mission_feedback, get_mission_feedback
 from adapters.pfz_adapter import PFZAdapter
 from adapters.boundary_adapter import BoundaryAdapter
 
@@ -48,9 +51,9 @@ async def health_check():
     return HealthResponse(
         status="healthy",
         service="ORCA Marine Decision Support Engine",
-        version="1.0.0-phase6",
+        version="1.0.0-phase7",
         timestamp=datetime.utcnow().isoformat() + "Z",
-        phase="Phase 6 - Living Decision Repair & Wait Engine",
+        phase="Phase 7 - Living Feedback & Outcome Capture",
         details={
             "database": "SQLite Decision Store Active",
             "decision_engine": "Deterministic Rules Active (GO/CAUTION/WAIT)",
@@ -58,6 +61,7 @@ async def health_check():
             "query_understanding": "Gemini 2.5 Flash + Multilingual Fallback",
             "decision_watch": "Living Decision Watch & Meaningful Change Detector Active",
             "repair_engine": "Deterministic Repair & Wait Strategy Generator Active",
+            "feedback_engine": "Prediction vs Actual Comparison & Outcome Capture Active",
             "environment": os.getenv("DEMO_MODE", "true")
         }
     )
@@ -255,16 +259,8 @@ async def simulate_condition_change(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-# -------------------------------------------------------------
-# PHASE 6: LIVING DECISION REPAIR & WAIT ENGINE ENDPOINTS
-# -------------------------------------------------------------
-
 @router.post("/decisions/{decision_id}/repair", response_model=RepairResponse)
 async def get_decision_repair_options(decision_id: str = Path(...)):
-    """
-    Generates and deterministically ranks safe repair alternatives (Time Shift, Zone Shift, Wait)
-    to preserve the user's original objective safely.
-    """
     try:
         return await generate_repair_options(decision_id)
     except ValueError as e:
@@ -275,12 +271,37 @@ async def select_decision_repair_option(
     decision_id: str = Path(...),
     req: SelectRepairRequest = Body(...)
 ):
-    """
-    Applies user's chosen repair alternative or WAIT strategy, updates the active mission,
-    preserves original decision snapshot, and continues active watch.
-    """
     try:
         return await apply_repair_selection(decision_id, req.option_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+# -------------------------------------------------------------
+# PHASE 7: LIVING FEEDBACK & OUTCOME CAPTURE ENDPOINTS
+# -------------------------------------------------------------
+
+@router.post("/decisions/{decision_id}/feedback", response_model=FeedbackResponse)
+async def submit_mission_feedback(
+    decision_id: str = Path(...),
+    feedback: MissionFeedback = Body(...)
+):
+    """
+    Submits actual observed conditions and fishing experience after mission completion,
+    computes prediction vs actual comparison, and records to history.
+    """
+    try:
+        return record_mission_feedback(decision_id, feedback)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@router.get("/decisions/{decision_id}/feedback", response_model=FeedbackResponse)
+async def fetch_decision_feedback(decision_id: str = Path(...)):
+    """Retrieves recorded feedback and prediction vs actual comparisons for a completed decision."""
+    try:
+        res = get_mission_feedback(decision_id)
+        if not res:
+            raise HTTPException(status_code=404, detail=f"No feedback recorded for decision '{decision_id}'.")
+        return res
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 

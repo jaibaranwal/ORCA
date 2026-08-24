@@ -35,6 +35,7 @@ export interface HealthResponse {
     explanation_engine?: string;
     decision_watch?: string;
     repair_engine?: string;
+    feedback_engine?: string;
     living_lifecycle?: string;
     data_collection?: string;
     gemini_integration?: string;
@@ -161,6 +162,31 @@ export interface RepairOption {
   rank: number;
 }
 
+export interface MissionFeedback {
+  actual_wave_height_m: number;
+  actual_wind_speed_kmh: number;
+  fishing_outcome: 'Good' | 'Average' | 'Poor';
+  comment?: string;
+  submitted_at?: string;
+}
+
+export interface ComparisonItem {
+  metric: string;
+  predicted: number;
+  actual: number;
+  difference: number;
+  verdict: 'Close to prediction' | 'Higher than predicted' | 'Lower than predicted';
+}
+
+export interface FeedbackResponse {
+  decision_id: string;
+  status: string;
+  message: string;
+  comparisons: ComparisonItem[];
+  feedback: MissionFeedback;
+  decision: DecisionObject;
+}
+
 export interface DecisionObject {
   decision_id: string;
   created_at: string;
@@ -179,7 +205,7 @@ export interface DecisionObject {
   change_history: ChangeHistoryEntry[];
   repair_options: RepairOption[];
   selected_action?: RepairOption;
-  feedback?: any;
+  feedback?: MissionFeedback;
 }
 
 export interface TrackDecisionRequest {

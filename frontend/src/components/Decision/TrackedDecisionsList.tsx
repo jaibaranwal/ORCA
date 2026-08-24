@@ -78,13 +78,18 @@ export default function TrackedDecisionsList({
               const currentStatus = dec.latest_decision?.status || origDec.status;
               const currentScore = dec.latest_decision?.score || origDec.score;
               const isAlert = dec.lifecycle_status === 'ALERT';
+              const isCompleted = dec.lifecycle_status === 'COMPLETED';
 
               return (
                 <div
                   key={dec.decision_id}
                   onClick={() => onSelectDecision(dec)}
                   className={`p-3.5 bg-slate-950/80 hover:bg-slate-950 border rounded-xl cursor-pointer transition-all shadow-md group ${
-                    isAlert ? 'border-rose-700 bg-rose-950/20' : 'border-slate-800/80 hover:border-cyan-600/60'
+                    isCompleted
+                      ? 'border-blue-800/80 bg-blue-950/20'
+                      : isAlert
+                      ? 'border-rose-700 bg-rose-950/20'
+                      : 'border-slate-800/80 hover:border-cyan-600/60'
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -94,14 +99,18 @@ export default function TrackedDecisionsList({
                       </span>
                       <span
                         className={`text-[9px] px-2 py-0.5 rounded-full font-mono font-bold ${
-                          isAlert
+                          isCompleted
+                            ? 'bg-blue-950 text-blue-300 border border-blue-700'
+                            : isAlert
                             ? 'bg-rose-950 text-rose-300 border border-rose-700 animate-pulse'
+                            : dec.lifecycle_status === 'REPAIRED'
+                            ? 'bg-cyan-950 text-cyan-400 border border-cyan-800'
                             : dec.lifecycle_status === 'TRACKING'
                             ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
                             : 'bg-slate-900 text-slate-400'
                         }`}
                       >
-                        {isAlert ? '⚠️ ALERT' : dec.lifecycle_status}
+                        {isCompleted ? '✓ COMPLETED' : isAlert ? '⚠️ ALERT' : dec.lifecycle_status}
                       </span>
                     </div>
                     <span className="text-[10px] text-slate-500 font-mono">
@@ -115,43 +124,56 @@ export default function TrackedDecisionsList({
                         {dec.mission.zone_name}
                       </span>
                       <p className="text-[10px] text-slate-400 mt-0.5">
-                        Orig: {dec.original_conditions.wave_height_m}m ➔ Now:{' '}
-                        <strong className={isAlert ? 'text-rose-400' : 'text-slate-200'}>
-                          {dec.latest_conditions?.wave_height_m || dec.original_conditions.wave_height_m}m
-                        </strong>
+                        Orig: {dec.original_conditions.wave_height_m}m ➔{' '}
+                        {isCompleted ? (
+                          <span className="text-emerald-400 font-bold font-mono">
+                            Actual: {dec.feedback?.actual_wave_height_m}m (Catch: {dec.feedback?.fishing_outcome})
+                          </span>
+                        ) : (
+                          <span>
+                            Now:{' '}
+                            <strong className={isAlert ? 'text-rose-400' : 'text-slate-200'}>
+                              {dec.latest_conditions?.wave_height_m || dec.original_conditions.wave_height_m}m
+                            </strong>
+                          </span>
+                        )}
                       </p>
                     </div>
 
                     <span
                       className={`text-[11px] font-bold px-2 py-0.5 rounded ${
-                        currentStatus === 'GO'
+                        isCompleted
+                          ? 'bg-blue-950 text-blue-300 border border-blue-800'
+                          : currentStatus === 'GO'
                           ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
                           : currentStatus === 'CAUTION'
                           ? 'bg-amber-950 text-amber-400 border border-amber-800'
                           : 'bg-rose-950 text-rose-400 border border-rose-800'
                       }`}
                     >
-                      {currentStatus} ({currentScore})
+                      {isCompleted ? 'DONE' : `${currentStatus} (${currentScore})`}
                     </span>
                   </div>
 
                   {/* Quick Action Buttons on Card */}
-                  <div className="mt-2.5 pt-2 border-t border-slate-800/60 flex items-center justify-end gap-2">
-                    <button
-                      onClick={(e) => handleQuickCheck(e, dec.decision_id)}
-                      disabled={actionId === dec.decision_id}
-                      className="px-2 py-0.5 bg-slate-900 hover:bg-slate-800 text-slate-300 text-[10px] rounded font-mono border border-slate-700 transition-all"
-                    >
-                      {actionId === dec.decision_id ? 'Checking...' : '🔄 Recheck'}
-                    </button>
-                    <button
-                      onClick={(e) => handleQuickSimulate(e, dec.decision_id)}
-                      disabled={actionId === dec.decision_id}
-                      className="px-2 py-0.5 bg-amber-950/80 hover:bg-amber-900 border border-amber-700 text-amber-300 text-[10px] rounded font-mono transition-all"
-                    >
-                      ⚡ Demo Change
-                    </button>
-                  </div>
+                  {!isCompleted && (
+                    <div className="mt-2.5 pt-2 border-t border-slate-800/60 flex items-center justify-end gap-2">
+                      <button
+                        onClick={(e) => handleQuickCheck(e, dec.decision_id)}
+                        disabled={actionId === dec.decision_id}
+                        className="px-2 py-0.5 bg-slate-900 hover:bg-slate-800 text-slate-300 text-[10px] rounded font-mono border border-slate-700 transition-all"
+                      >
+                        {actionId === dec.decision_id ? 'Checking...' : '🔄 Recheck'}
+                      </button>
+                      <button
+                        onClick={(e) => handleQuickSimulate(e, dec.decision_id)}
+                        disabled={actionId === dec.decision_id}
+                        className="px-2 py-0.5 bg-amber-950/80 hover:bg-amber-900 border border-amber-700 text-amber-300 text-[10px] rounded font-mono transition-all"
+                      >
+                        ⚡ Demo Change
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })
@@ -160,7 +182,7 @@ export default function TrackedDecisionsList({
       </div>
 
       <div className="pt-2.5 border-t border-slate-800 text-[10px] text-slate-500 font-mono flex justify-between">
-        <span>POST /api/decisions/.../check</span>
+        <span>POST /api/decisions/.../feedback</span>
         <span>Living Decision Lifecycle</span>
       </div>
     </div>

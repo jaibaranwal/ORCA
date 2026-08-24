@@ -12,7 +12,9 @@ import {
   TrackDecisionResponse,
   RecheckResponse,
   RepairResponse,
-  SelectRepairResponse
+  SelectRepairResponse,
+  MissionFeedback,
+  FeedbackResponse
 } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
@@ -131,6 +133,23 @@ export async function selectRepairOption(decisionId: string, optionId: string): 
     cache: 'no-store',
   });
   if (!res.ok) throw new Error(`Select repair option failed: ${res.status}`);
+  return res.json();
+}
+
+export async function submitMissionFeedback(decisionId: string, feedback: MissionFeedback): Promise<FeedbackResponse> {
+  const res = await fetch(`${API_BASE_URL}/decisions/${decisionId}/feedback`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(feedback),
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Submit feedback failed: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchMissionFeedback(decisionId: string): Promise<FeedbackResponse> {
+  const res = await fetch(`${API_BASE_URL}/decisions/${decisionId}/feedback`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Fetch feedback failed: ${res.status}`);
   return res.json();
 }
 

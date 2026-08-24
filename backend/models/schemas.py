@@ -128,6 +128,28 @@ class RepairOption(BaseModel):
     conditions: Optional[MarineConditions] = None
     rank: int = 1
 
+class MissionFeedback(BaseModel):
+    actual_wave_height_m: float
+    actual_wind_speed_kmh: float
+    fishing_outcome: str = "Good"  # "Good" | "Average" | "Poor"
+    comment: Optional[str] = None
+    submitted_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+
+class ComparisonItem(BaseModel):
+    metric: str
+    predicted: float
+    actual: float
+    difference: float
+    verdict: str  # "Close to prediction" | "Higher than predicted" | "Lower than predicted"
+
+class FeedbackResponse(BaseModel):
+    decision_id: str
+    status: str
+    message: str
+    comparisons: List[ComparisonItem]
+    feedback: MissionFeedback
+    decision: Any
+
 class DecisionObject(BaseModel):
     decision_id: str
     created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
@@ -140,13 +162,13 @@ class DecisionObject(BaseModel):
     thresholds_snapshot: Dict[str, Any]
     latest_decision: Optional[DecisionSnapshot] = None
     latest_conditions: Optional[MarineConditions] = None
-    lifecycle_status: str = "TRACKING"  # TRACKING | ALERT | REPAIRED | WAITING | CANCELLED
+    lifecycle_status: str = "TRACKING"  # TRACKING | ALERT | REPAIRED | WAITING | COMPLETED | CANCELLED
     tracking_enabled: bool = True
     current_status: str = "TRACKING"
     change_history: List[ChangeHistoryEntry] = []
     repair_options: List[RepairOption] = []
     selected_action: Optional[RepairOption] = None
-    feedback: Optional[Dict[str, Any]] = None
+    feedback: Optional[MissionFeedback] = None
 
 class TrackDecisionRequest(BaseModel):
     decision_result: Optional[DecisionResult] = None
