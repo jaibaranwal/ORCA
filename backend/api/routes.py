@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query, Path
+from fastapi import APIRouter, HTTPException, Query, Path, Body
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 import json
@@ -15,7 +15,9 @@ from models.schemas import (
     QueryResponse,
     TrackDecisionRequest,
     TrackDecisionResponse,
-    DecisionObject
+    DecisionObject,
+    RecheckRequest,
+    RecheckResponse
 )
 from modules.decision_store import (
     create_and_store_decision,
@@ -28,6 +30,7 @@ from modules.data_collection import collect_marine_conditions, calculate_haversi
 from modules.decision_engine import evaluate_decision
 from modules.query_understanding import understand_user_query
 from modules.explanation import explain_decision
+from modules.decision_watch import check_decision_conditions
 from adapters.pfz_adapter import PFZAdapter
 from adapters.boundary_adapter import BoundaryAdapter
 
@@ -41,28 +44,25 @@ async def health_check():
     return HealthResponse(
         status="healthy",
         service="ORCA Marine Decision Support Engine",
-        version="1.0.0-phase4",
+        version="1.0.0-phase5",
         timestamp=datetime.utcnow().isoformat() + "Z",
-        phase="Phase 4 - Decision Object & Track Decision Lifecycle",
+        phase="Phase 5 - Decision Watch & Condition Change Detection",
         details={
-            "database": "SQLite Decision Object Store Active",
+            "database": "SQLite Decision Store Active",
             "decision_engine": "Deterministic Rules Active (GO/CAUTION/WAIT)",
             "boundary_checker": "Shapely Point-in-Polygon Active",
             "query_understanding": "Gemini 2.5 Flash + Multilingual Fallback",
-            "explanation_engine": "Grounded Language-Aware Synthesizer Active",
-            "living_lifecycle": "Decision Snapshot & Tracking Active",
+            "decision_watch": "Living Decision Watch & Meaningful Change Detector Active",
             "environment": os.getenv("DEMO_MODE", "true")
         }
     )
 
 @router.get("/zones")
 async def get_zones():
-    """Returns all available fishing zones with centroids, PFZ metrics, and polygons."""
     return pfz_adapter.get_all_zones()
 
 @router.get("/boundaries")
 async def get_boundaries():
-    """Returns maritime boundaries and restricted zones GeoJSON."""
     return boundary_adapter.get_boundaries_geojson()
 
 @router.get("/conditions")
@@ -71,7 +71,6 @@ async def get_conditions(
     lat: Optional[float] = Query(None, description="Optional custom latitude"),
     lon: Optional[float] = Query(None, description="Optional custom longitude")
 ):
-    """Retrieves current marine and atmospheric conditions for a given zone or location."""
     target_lat = lat
     target_lon = lon
 
@@ -82,7 +81,7 @@ async def get_conditions(
             target_lon = zinfo.centroid.lon
 
     if target_lat is None or target_lon is None:
-        target_lat, target_lon = 9.966, 76.267  # Default Kochi Port
+        target_lat, target_lon = 9.966, 76.267
 
     conditions = await collect_marine_conditions(target_lat, target_lon, zone_id=zone_id)
     return conditions
@@ -123,10 +122,6 @@ async def _evaluate_single_zone(zone_id: str, origin: GeoLocation) -> DecisionRe
 @router.post("/evaluate", response_model=DecisionResult)
 @router.post("/decisions/evaluate", response_model=DecisionResult)
 async def evaluate_zone_decision(req: DecisionRequest):
-    """
-    Evaluates safety, fishing opportunity, and travel effort for a selected zone and mission.
-    Runs deterministic boundary checks, gathers marine data, and produces GO/CAUTION/WAIT.
-    """
     try:
         return await _evaluate_single_zone(req.zone_id, req.origin)
     except ValueError as e:
@@ -134,12 +129,6 @@ async def evaluate_zone_decision(req: DecisionRequest):
 
 @router.post("/query", response_model=QueryResponse)
 async def process_natural_language_query(req: QueryRequest):
-    """
-    Conversational Decision Endpoint:
-    1. Gemini parses natural language query into validated intent (EN / HI / Hinglish).
-    2. Deterministic Decision Engine evaluates relevant zone(s).
-    3. Gemini explains the deterministic result without inventing facts.
-    """
     origin = req.origin or GeoLocation(lat=9.966, lon=76.267, name="Kochi Port")
     
     intent = await understand_user_query(req.message, user_role="fisherman")
@@ -185,19 +174,10 @@ async def process_natural_language_query(req: QueryRequest):
         suggested_action=suggested_action
     )
 
-# -------------------------------------------------------------
-# PHASE 4: LIVING DECISION OBJECT & TRACKING ENDPOINTS
-# -------------------------------------------------------------
-
 @router.post("/decisions", response_model=TrackDecisionResponse)
 async def track_decision(req: TrackDecisionRequest):
-    """
-    Creates and stores a persistent Decision Object with an immutable snapshot
-    of the marine conditions and thresholds at decision time.
-    """
     origin = req.origin or GeoLocation(lat=9.966, lon=76.267, name="Kochi Port")
     
-    # 1. Resolve DecisionResult
     decision_res = req.decision_result
     if not decision_res and req.zone_id:
         try:
@@ -207,7 +187,6 @@ async def track_decision(req: TrackDecisionRequest):
     elif not decision_res:
         raise HTTPException(status_code=400, detail="Either 'decision_result' or 'zone_id' must be provided.")
 
-    # 2. Create Decision Object with immutable snapshot
     decision_obj = create_and_store_decision(
         decision_result=decision_res,
         origin=origin,
@@ -228,12 +207,10 @@ async def track_decision(req: TrackDecisionRequest):
 
 @router.get("/decisions")
 async def list_tracked_decisions(user_id: Optional[str] = Query(None)):
-    """Lists all saved Decision Objects."""
     return list_decisions(user_id=user_id)
 
 @router.get("/decisions/{decision_id}")
 async def get_single_decision(decision_id: str = Path(...)):
-    """Retrieves a single Decision Object with complete historical and condition snapshots."""
     decision_data = get_decision(decision_id)
     if not decision_data:
         raise HTTPException(status_code=404, detail=f"Decision '{decision_id}' not found.")
@@ -241,7 +218,6 @@ async def get_single_decision(decision_id: str = Path(...)):
 
 @router.post("/decisions/{decision_id}/cancel")
 async def cancel_tracked_decision(decision_id: str = Path(...)):
-    """Cancels/stops tracking for an active Decision Object."""
     updated = cancel_decision(decision_id)
     if not updated:
         raise HTTPException(status_code=404, detail=f"Decision '{decision_id}' not found.")
@@ -250,6 +226,42 @@ async def cancel_tracked_decision(decision_id: str = Path(...)):
         "message": f"Tracking for decision '{decision_id}' has been cancelled.",
         "decision": updated
     }
+
+# -------------------------------------------------------------
+# PHASE 5: DECISION WATCH & CONDITION CHANGE DETECTION
+# -------------------------------------------------------------
+
+@router.post("/decisions/{decision_id}/check", response_model=RecheckResponse)
+@router.post("/decisions/{decision_id}/watch", response_model=RecheckResponse)
+async def recheck_tracked_decision(
+    decision_id: str = Path(...),
+    req: Optional[RecheckRequest] = Body(None)
+):
+    """
+    Executes Living Decision Watch:
+    Re-evaluates latest marine conditions against original decision thresholds
+    and logs change history.
+    """
+    override = req.override_conditions if req else None
+    try:
+        return await check_decision_conditions(decision_id, override_conditions=override)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@router.post("/decisions/{decision_id}/simulate-change", response_model=RecheckResponse)
+async def simulate_condition_change(
+    decision_id: str = Path(...),
+    req: Optional[RecheckRequest] = Body(None)
+):
+    """
+    Controlled SIH Demo Endpoint:
+    Injects simulated adverse condition shift (wave_height_m: 2.8m) through the real decision engine.
+    """
+    override = req.override_conditions if (req and req.override_conditions) else {"wave_height_m": 2.8}
+    try:
+        return await check_decision_conditions(decision_id, override_conditions=override)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 @router.get("/demo/reset")
 async def reset_demo():

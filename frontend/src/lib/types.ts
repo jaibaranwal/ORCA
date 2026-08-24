@@ -33,6 +33,7 @@ export interface HealthResponse {
     boundary_checker?: string;
     query_understanding?: string;
     explanation_engine?: string;
+    decision_watch?: string;
     living_lifecycle?: string;
     data_collection?: string;
     gemini_integration?: string;
@@ -116,6 +117,29 @@ export interface DecisionSnapshot {
   explanation?: string;
 }
 
+export interface ChangedFactor {
+  factor: string;
+  field_name: string;
+  previous_value: any;
+  current_value: any;
+  threshold_value?: any;
+  threshold_crossed: boolean;
+  impact: string;
+}
+
+export interface ChangeHistoryEntry {
+  checked_at: string;
+  previous_status: string;
+  new_status: string;
+  previous_score: number;
+  new_score: number;
+  affected: boolean;
+  changed_factors: ChangedFactor[];
+  summary: string;
+  explanation?: string;
+  conditions_snapshot: MarineConditions;
+}
+
 export interface DecisionObject {
   decision_id: string;
   created_at: string;
@@ -126,10 +150,12 @@ export interface DecisionObject {
   original_decision: DecisionSnapshot;
   original_conditions: MarineConditions;
   thresholds_snapshot: Record<string, any>;
+  latest_decision?: DecisionSnapshot;
+  latest_conditions?: MarineConditions;
   lifecycle_status: string;
   tracking_enabled: boolean;
   current_status: string;
-  change_history: any[];
+  change_history: ChangeHistoryEntry[];
   repair_options: any[];
   selected_action?: any;
   feedback?: any;
@@ -151,6 +177,20 @@ export interface TrackDecisionResponse {
   decision_id: string;
   status: string;
   message: string;
+  decision: DecisionObject;
+}
+
+export interface RecheckResponse {
+  decision_id: string;
+  affected: boolean;
+  previous_status: string;
+  current_status: string;
+  previous_score: number;
+  current_score: number;
+  changed_factors: ChangedFactor[];
+  summary: string;
+  explanation: string;
+  last_checked_at: string;
   decision: DecisionObject;
 }
 

@@ -9,7 +9,8 @@ import {
   QueryResponse,
   DecisionObject,
   TrackDecisionRequest,
-  TrackDecisionResponse
+  TrackDecisionResponse,
+  RecheckResponse
 } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
@@ -58,11 +59,7 @@ export async function sendQuery(message: string, language?: string, origin?: Geo
   const res = await fetch(`${API_BASE_URL}/query`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      message,
-      language,
-      origin
-    }),
+    body: JSON.stringify({ message, language, origin }),
     cache: 'no-store',
   });
   if (!res.ok) throw new Error(`Natural language query failed: ${res.status}`);
@@ -89,6 +86,28 @@ export async function fetchDecisions(): Promise<DecisionObject[]> {
 export async function fetchSingleDecision(decisionId: string): Promise<DecisionObject> {
   const res = await fetch(`${API_BASE_URL}/decisions/${decisionId}`, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Failed to fetch decision details: ${res.status}`);
+  return res.json();
+}
+
+export async function recheckDecision(decisionId: string, overrideConditions?: Record<string, any>): Promise<RecheckResponse> {
+  const res = await fetch(`${API_BASE_URL}/decisions/${decisionId}/check`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ override_conditions: overrideConditions }),
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Recheck decision failed: ${res.status}`);
+  return res.json();
+}
+
+export async function simulateConditionChange(decisionId: string, overrideConditions?: Record<string, any>): Promise<RecheckResponse> {
+  const res = await fetch(`${API_BASE_URL}/decisions/${decisionId}/simulate-change`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ override_conditions: overrideConditions || { wave_height_m: 2.8 } }),
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Simulate condition change failed: ${res.status}`);
   return res.json();
 }
 

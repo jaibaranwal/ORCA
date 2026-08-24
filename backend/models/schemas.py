@@ -88,6 +88,27 @@ class DecisionSnapshot(BaseModel):
     reasons: List[str] = []
     explanation: Optional[str] = None
 
+class ChangedFactor(BaseModel):
+    factor: str
+    field_name: str
+    previous_value: Any
+    current_value: Any
+    threshold_value: Optional[Any] = None
+    threshold_crossed: bool = False
+    impact: str
+
+class ChangeHistoryEntry(BaseModel):
+    checked_at: str
+    previous_status: str
+    new_status: str
+    previous_score: int
+    new_score: int
+    affected: bool
+    changed_factors: List[ChangedFactor] = []
+    summary: str
+    explanation: Optional[str] = None
+    conditions_snapshot: MarineConditions
+
 class DecisionObject(BaseModel):
     decision_id: str
     created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
@@ -98,10 +119,12 @@ class DecisionObject(BaseModel):
     original_decision: DecisionSnapshot
     original_conditions: MarineConditions
     thresholds_snapshot: Dict[str, Any]
-    lifecycle_status: str = "TRACKING"  # ACTIVE | TRACKING | CHANGED | REPAIRED | WAITING | CANCELLED
+    latest_decision: Optional[DecisionSnapshot] = None
+    latest_conditions: Optional[MarineConditions] = None
+    lifecycle_status: str = "TRACKING"  # TRACKING | ALERT | CHANGED | REPAIRED | WAITING | CANCELLED
     tracking_enabled: bool = True
-    current_status: str = "TRACKING"  # Synced with lifecycle_status
-    change_history: List[Dict[str, Any]] = []
+    current_status: str = "TRACKING"
+    change_history: List[ChangeHistoryEntry] = []
     repair_options: List[Dict[str, Any]] = []
     selected_action: Optional[Dict[str, Any]] = None
     feedback: Optional[Dict[str, Any]] = None
@@ -121,6 +144,23 @@ class TrackDecisionResponse(BaseModel):
     decision_id: str
     status: str
     message: str
+    decision: DecisionObject
+
+class RecheckRequest(BaseModel):
+    override_conditions: Optional[Dict[str, Any]] = None
+    force_demo_change: bool = False
+
+class RecheckResponse(BaseModel):
+    decision_id: str
+    affected: bool
+    previous_status: str
+    current_status: str
+    previous_score: int
+    current_score: int
+    changed_factors: List[ChangedFactor]
+    summary: str
+    explanation: str
+    last_checked_at: str
     decision: DecisionObject
 
 class QueryRequest(BaseModel):

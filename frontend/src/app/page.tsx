@@ -38,7 +38,6 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
 
-  // Default User Location: Kochi Port, Kerala
   const userOrigin: GeoLocation = {
     lat: 9.966,
     lon: 76.267,
@@ -95,6 +94,15 @@ export default function Home() {
   const handleDecisionTracked = (tracked: DecisionObject) => {
     setTrackedDecisions((prev) => [tracked, ...prev.filter((d) => d.decision_id !== tracked.decision_id)]);
     setActiveTab('tracked');
+  };
+
+  const handleDecisionUpdated = (updated: DecisionObject) => {
+    setTrackedDecisions((prev) =>
+      prev.map((d) => (d.decision_id === updated.decision_id ? updated : d))
+    );
+    if (inspectedDecision && inspectedDecision.decision_id === updated.decision_id) {
+      setInspectedDecision(updated);
+    }
   };
 
   const handleReset = async () => {
@@ -171,7 +179,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* Phase 4 Workstation Grid */}
+        {/* Workstation Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           
           {/* Left Column: Interactive GIS Map */}
@@ -272,6 +280,7 @@ export default function Home() {
               <TrackedDecisionsList
                 decisions={trackedDecisions}
                 onSelectDecision={(dec) => setInspectedDecision(dec)}
+                onDecisionUpdated={handleDecisionUpdated}
                 onRefresh={handleRefreshDecisions}
               />
             )}
@@ -284,12 +293,12 @@ export default function Home() {
         <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3.5 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-3">
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 rounded bg-emerald-950 border border-emerald-700 text-emerald-300 font-mono font-bold">
-              ✓ Phase 4 Ready
+              ✓ Phase 5 Ready
             </span>
-            <span>Living Decision Object • Persistent SQLite Store • Immutable Snapshot</span>
+            <span>Decision Watch • Meaningful Change Detection • Impact Explanation • History Timeline</span>
           </div>
           <div className="font-mono text-slate-500 text-[11px]">
-            Next: Phase 5 (Decision Watch & Condition Change Detection)
+            Next: Phase 6 (Living Decision Repair & Wait Engine)
           </div>
         </div>
 
@@ -300,12 +309,7 @@ export default function Home() {
         <DecisionDetailsModal
           decision={inspectedDecision}
           onClose={() => setInspectedDecision(null)}
-          onDecisionUpdated={(updated) => {
-            setInspectedDecision(updated);
-            setTrackedDecisions((prev) =>
-              prev.map((d) => (d.decision_id === updated.decision_id ? updated : d))
-            );
-          }}
+          onDecisionUpdated={handleDecisionUpdated}
         />
       )}
 
