@@ -4,7 +4,9 @@ import {
   DecisionResult, 
   DecisionRequest,
   BoundariesGeoJSON,
-  MarineConditions
+  MarineConditions,
+  GeoLocation,
+  QueryResponse
 } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
@@ -46,6 +48,21 @@ export async function evaluateDecision(req: DecisionRequest): Promise<DecisionRe
     cache: 'no-store',
   });
   if (!res.ok) throw new Error(`Decision evaluation failed: ${res.status}`);
+  return res.json();
+}
+
+export async function sendQuery(message: string, language?: string, origin?: GeoLocation): Promise<QueryResponse> {
+  const res = await fetch(`${API_BASE_URL}/query`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message,
+      language,
+      origin
+    }),
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Natural language query failed: ${res.status}`);
   return res.json();
 }
 

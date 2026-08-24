@@ -1,4 +1,4 @@
-export interface Location {
+export interface GeoLocation {
   lat: number;
   lon: number;
   name?: string;
@@ -6,7 +6,7 @@ export interface Location {
 
 export interface MarineConditions {
   timestamp: string;
-  location: Location;
+  location: GeoLocation;
   wave_height_m: number;
   wave_direction_deg: number;
   wave_period_s: number;
@@ -31,6 +31,8 @@ export interface HealthResponse {
     database: string;
     decision_engine: string;
     boundary_checker?: string;
+    query_understanding?: string;
+    explanation_engine?: string;
     data_collection?: string;
     gemini_integration?: string;
     environment?: string;
@@ -54,7 +56,7 @@ export interface ZoneInfo {
   distance_km: number;
   restricted?: boolean;
   description?: string;
-  coordinates?: number[][][];
+  coordinates?: any;
 }
 
 export interface DecisionResult {
@@ -80,7 +82,7 @@ export interface DecisionRequest {
   planned_start: string;
   planned_return: string;
   user_role: string;
-  origin: Location;
+  origin: GeoLocation;
 }
 
 export interface BoundaryFeature {
@@ -101,4 +103,24 @@ export interface BoundaryFeature {
 export interface BoundariesGeoJSON {
   type: string;
   features: BoundaryFeature[];
+}
+
+export interface ChatMessage {
+  id: string;
+  sender: 'user' | 'orca';
+  text: string;
+  timestamp: string;
+  intent?: Record<string, any>;
+  decision?: DecisionResult;
+  suggested_action?: string;
+}
+
+export interface QueryResponse {
+  message: string;
+  intent: Record<string, any>;
+  decision?: DecisionResult;
+  all_evaluations?: DecisionResult[];
+  explanation: string;
+  language: string;
+  suggested_action: string;
 }

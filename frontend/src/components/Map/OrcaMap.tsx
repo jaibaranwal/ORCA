@@ -1,14 +1,14 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { ZoneInfo, BoundariesGeoJSON, Location, DecisionResult } from '@/lib/types';
+import { ZoneInfo, BoundariesGeoJSON, GeoLocation, DecisionResult } from '@/lib/types';
 
 interface OrcaMapProps {
   zones: ZoneInfo[];
   boundaries: BoundariesGeoJSON | null;
   selectedZone: ZoneInfo | null;
   decision: DecisionResult | null;
-  userOrigin: Location;
+  userOrigin: GeoLocation;
   onSelectZone: (zone: ZoneInfo) => void;
 }
 

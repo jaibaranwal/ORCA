@@ -3,9 +3,8 @@
 import { useEffect } from 'react';
 import { MapContainer, TileLayer, Polygon, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { ZoneInfo, BoundariesGeoJSON, Location, DecisionResult } from '@/lib/types';
+import { ZoneInfo, BoundariesGeoJSON, GeoLocation, DecisionResult } from '@/lib/types';
 
-// Custom Map center repositioner hook
 function ChangeView({ center, zoom }: { center: [number, number]; zoom: number }) {
   const map = useMap();
   useEffect(() => {
@@ -14,7 +13,6 @@ function ChangeView({ center, zoom }: { center: [number, number]; zoom: number }
   return null;
 }
 
-// Custom DivIcon for Port / User Location
 const userPortIcon = L.divIcon({
   className: 'custom-port-icon',
   html: `<div style="background-color: #06b6d4; border: 2px solid white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(6, 182, 212, 0.8); font-size: 13px;">⚓</div>`,
@@ -22,7 +20,6 @@ const userPortIcon = L.divIcon({
   iconAnchor: [12, 12],
 });
 
-// Custom DivIcon for Target Destination
 const destinationIcon = L.divIcon({
   className: 'custom-dest-icon',
   html: `<div style="background-color: #10b981; border: 2px solid white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(16, 185, 129, 0.8); font-size: 12px;">🎯</div>`,
@@ -35,7 +32,7 @@ interface OrcaMapProps {
   boundaries: BoundariesGeoJSON | null;
   selectedZone: ZoneInfo | null;
   decision: DecisionResult | null;
-  userOrigin: Location;
+  userOrigin: GeoLocation;
   onSelectZone: (zone: ZoneInfo) => void;
 }
 
@@ -47,7 +44,6 @@ export default function OrcaMapInner({
   userOrigin,
   onSelectZone,
 }: OrcaMapProps) {
-  // Center map around Kochi / Kerala Offshore
   const defaultCenter: [number, number] = [10.15, 75.95];
   const mapCenter: [number, number] = selectedZone?.centroid
     ? [selectedZone.centroid.lat, selectedZone.centroid.lon]
@@ -59,21 +55,21 @@ export default function OrcaMapInner({
     if (decision && decision.zone_id === zone.zone_id) {
       if (decision.status === 'GO') {
         return {
-          fillColor: '#10b981', // emerald-500
+          fillColor: '#10b981',
           fillOpacity: 0.45,
           color: '#34d399',
           weight: 3,
         };
       } else if (decision.status === 'CAUTION') {
         return {
-          fillColor: '#f59e0b', // amber-500
+          fillColor: '#f59e0b',
           fillOpacity: 0.45,
           color: '#fbbf24',
           weight: 3,
         };
       } else {
         return {
-          fillColor: '#ef4444', // rose-500
+          fillColor: '#ef4444',
           fillOpacity: 0.45,
           color: '#f87171',
           weight: 3,
@@ -83,7 +79,7 @@ export default function OrcaMapInner({
 
     if (isSelected) {
       return {
-        fillColor: '#06b6d4', // cyan-500
+        fillColor: '#06b6d4',
         fillOpacity: 0.4,
         color: '#22d3ee',
         weight: 3,
@@ -110,13 +106,11 @@ export default function OrcaMapInner({
       >
         <ChangeView center={mapCenter} zoom={selectedZone ? 9 : 8} />
 
-        {/* CartoDB Dark Matter free map tiles */}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> & CartoDB'
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         />
 
-        {/* User Origin Port Marker */}
         <Marker position={[userOrigin.lat, userOrigin.lon]} icon={userPortIcon}>
           <Popup>
             <div className="text-xs">
@@ -127,7 +121,6 @@ export default function OrcaMapInner({
           </Popup>
         </Marker>
 
-        {/* Restricted Boundaries Layer */}
         {boundaries?.features.map((feature, idx) => {
           const coords = feature.geometry.coordinates[0] || [];
           const latLngs: [number, number][] = coords.map((c: any) => [c[1], c[0]]);
@@ -162,11 +155,9 @@ export default function OrcaMapInner({
           );
         })}
 
-        {/* Fishing Zones Layer */}
         {zones.map((zone) => {
           if (!zone.coordinates || zone.coordinates.length === 0) return null;
           
-          // Flatten / map coordinates safely to [lat, lon]
           const coordsList = Array.isArray(zone.coordinates[0]) && Array.isArray(zone.coordinates[0][0])
             ? (zone.coordinates[0] as any)
             : zone.coordinates;
@@ -209,7 +200,6 @@ export default function OrcaMapInner({
           );
         })}
 
-        {/* Route Polyline when a zone is evaluated or selected */}
         {selectedZone?.centroid && (
           <>
             <Marker
@@ -240,7 +230,6 @@ export default function OrcaMapInner({
         )}
       </MapContainer>
 
-      {/* Map Legend Overlay */}
       <div className="absolute bottom-3 left-3 z-[1000] bg-slate-900/90 backdrop-blur border border-slate-800 rounded-xl px-3 py-2 text-[11px] text-slate-300 flex flex-wrap items-center gap-3 shadow-lg">
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />

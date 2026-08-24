@@ -61,18 +61,17 @@ class DecisionResult(BaseModel):
 class QueryRequest(BaseModel):
     message: str
     user_id: str = "user_demo_fisherman"
-    language: str = "en"
+    language: Optional[str] = None
+    origin: Optional[Location] = None
 
 class QueryResponse(BaseModel):
-    intent: str
-    zone: Optional[str] = None
-    time_reference: Optional[str] = None
-    resolved_datetime: Optional[str] = None
-    user_role: str = "fisherman"
+    message: str
+    intent: Dict[str, Any]
+    decision: Optional[DecisionResult] = None
+    all_evaluations: Optional[List[DecisionResult]] = None
+    explanation: str
     language: str = "en"
-    constraints: List[str] = []
-    raw_query: str
-    suggested_action: str
+    suggested_action: str = "view_decision"
 
 class HealthResponse(BaseModel):
     status: str
