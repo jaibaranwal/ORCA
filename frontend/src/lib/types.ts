@@ -34,6 +34,7 @@ export interface HealthResponse {
     query_understanding?: string;
     explanation_engine?: string;
     decision_watch?: string;
+    repair_engine?: string;
     living_lifecycle?: string;
     data_collection?: string;
     gemini_integration?: string;
@@ -137,7 +138,27 @@ export interface ChangeHistoryEntry {
   changed_factors: ChangedFactor[];
   summary: string;
   explanation?: string;
-  conditions_snapshot: MarineConditions;
+  conditions_snapshot?: MarineConditions;
+  action_taken?: string;
+}
+
+export interface RepairOption {
+  option_id: string;
+  type: 'TIME_CHANGE' | 'ZONE_CHANGE' | 'WAIT' | 'COMBINED';
+  title: string;
+  description: string;
+  zone_id: string;
+  zone_name: string;
+  planned_start: string;
+  status: 'GO' | 'CAUTION' | 'WAIT';
+  score: number;
+  safety_score: number;
+  fishing_score: number;
+  effort_score: number;
+  reasons: string[];
+  explanation?: string;
+  conditions?: MarineConditions;
+  rank: number;
 }
 
 export interface DecisionObject {
@@ -156,8 +177,8 @@ export interface DecisionObject {
   tracking_enabled: boolean;
   current_status: string;
   change_history: ChangeHistoryEntry[];
-  repair_options: any[];
-  selected_action?: any;
+  repair_options: RepairOption[];
+  selected_action?: RepairOption;
   feedback?: any;
 }
 
@@ -191,6 +212,24 @@ export interface RecheckResponse {
   summary: string;
   explanation: string;
   last_checked_at: string;
+  decision: DecisionObject;
+}
+
+export interface RepairResponse {
+  decision_id: string;
+  original_status: string;
+  current_status: string;
+  repair_available: boolean;
+  options: RepairOption[];
+  summary: string;
+  explanation: string;
+}
+
+export interface SelectRepairResponse {
+  decision_id: string;
+  status: string;
+  message: string;
+  selected_option: RepairOption;
   decision: DecisionObject;
 }
 

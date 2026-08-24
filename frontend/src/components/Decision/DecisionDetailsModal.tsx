@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { DecisionObject, RecheckResponse } from '@/lib/types';
-import { recheckDecision, simulateConditionChange, cancelDecision } from '@/lib/api';
+import { DecisionObject, RecheckResponse, RepairResponse, RepairOption } from '@/lib/types';
+import { recheckDecision, simulateConditionChange, cancelDecision, fetchRepairOptions, selectRepairOption } from '@/lib/api';
 
 interface DecisionDetailsModalProps {
   decision: DecisionObject;
@@ -17,18 +17,27 @@ export default function DecisionDetailsModal({
 }: DecisionDetailsModalProps) {
   const [checking, setChecking] = useState(false);
   const [simulating, setSimulating] = useState(false);
+  const [loadingRepair, setLoadingRepair] = useState(false);
+  const [selectingOption, setSelectingOption] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [recheckResult, setRecheckResult] = useState<RecheckResponse | null>(null);
+  const [repairData, setRepairData] = useState<RepairResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const origDec = decision.original_decision;
   const origCond = decision.original_conditions;
   const latestDec = decision.latest_decision || origDec;
   const latestCond = decision.latest_conditions || origCond;
 
+  const isAlert = decision.lifecycle_status === 'ALERT' || Boolean(recheckResult?.affected);
+  const isRepaired = decision.lifecycle_status === 'REPAIRED';
+  const isWaiting = decision.lifecycle_status === 'WAITING';
+
   const handleRecheck = async () => {
     setChecking(true);
     setError(null);
+    setSuccessMessage(null);
     try {
       const res = await recheckDecision(decision.decision_id);
       setRecheckResult(res);
@@ -43,8 +52,8 @@ export default function DecisionDetailsModal({
   const handleSimulateChange = async () => {
     setSimulating(true);
     setError(null);
+    setSuccessMessage(null);
     try {
-      // Injects simulated 2.8m wave height through real decision engine
       const res = await simulateConditionChange(decision.decision_id, { wave_height_m: 2.8 });
       setRecheckResult(res);
       onDecisionUpdated(res.decision);
@@ -52,6 +61,35 @@ export default function DecisionDetailsModal({
       setError(err.message || 'Simulation failed');
     } finally {
       setSimulating(false);
+    }
+  };
+
+  const handleFindRepairOptions = async () => {
+    setLoadingRepair(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      const res = await fetchRepairOptions(decision.decision_id);
+      setRepairData(res);
+    } catch (err: any) {
+      setError(err.message || 'Failed to generate repair alternatives');
+    } finally {
+      setLoadingRepair(false);
+    }
+  };
+
+  const handleSelectOption = async (option: RepairOption) => {
+    setSelectingOption(option.option_id);
+    setError(null);
+    try {
+      const res = await selectRepairOption(decision.decision_id, option.option_id);
+      setSuccessMessage(`✓ Plan updated: ${res.selected_option.title}`);
+      onDecisionUpdated(res.decision);
+      setRepairData(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to apply repair selection');
+    } finally {
+      setSelectingOption(null);
     }
   };
 
@@ -70,7 +108,7 @@ export default function DecisionDetailsModal({
 
   return (
     <div className="fixed inset-0 z-[2000] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-3xl w-full max-h-[92vh] overflow-y-auto p-5 md:p-6 shadow-2xl space-y-5">
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-3xl w-full max-h-[92vh] overflow-y-auto p-5 md:p-6 shadow-2xl space-y-4">
         
         {/* Modal Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
@@ -81,11 +119,13 @@ export default function DecisionDetailsModal({
               </span>
               <span
                 className={`text-xs px-2.5 py-0.5 rounded-full font-mono font-bold ${
-                  decision.lifecycle_status === 'ALERT'
+                  isAlert
                     ? 'bg-rose-950 text-rose-300 border border-rose-700 animate-pulse'
-                    : decision.lifecycle_status === 'TRACKING'
-                    ? 'bg-emerald-950 text-emerald-300 border border-emerald-700'
-                    : 'bg-slate-800 text-slate-400 border border-slate-700'
+                    : isRepaired
+                    ? 'bg-cyan-950 text-cyan-300 border border-cyan-700'
+                    : isWaiting
+                    ? 'bg-amber-950 text-amber-300 border border-amber-700'
+                    : 'bg-emerald-950 text-emerald-300 border border-emerald-700'
                 }`}
               >
                 {decision.lifecycle_status}
@@ -103,8 +143,14 @@ export default function DecisionDetailsModal({
           </button>
         </div>
 
+        {successMessage && (
+          <div className="p-3 bg-emerald-950/60 border border-emerald-800 text-emerald-300 text-xs font-mono rounded-xl flex items-center gap-2">
+            <span>✓</span> {successMessage}
+          </div>
+        )}
+
         {/* Phase 5 Recheck Actions Bar */}
-        <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-xl flex flex-wrap items-center justify-between gap-3">
+        <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex flex-wrap items-center justify-between gap-3">
           <div>
             <span className="text-xs font-bold text-white block">Decision Watch Trigger</span>
             <span className="text-[11px] text-slate-400 font-mono">
@@ -116,16 +162,16 @@ export default function DecisionDetailsModal({
             <button
               onClick={handleRecheck}
               disabled={checking || simulating || decision.lifecycle_status === 'CANCELLED'}
-              className="px-3.5 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-cyan-950 flex items-center gap-1.5 font-mono"
+              className="px-3.5 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-bold rounded-xl text-xs transition-all shadow-md font-mono flex items-center gap-1.5"
             >
               {checking ? (
                 <>
-                  <span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full" />
+                  <span className="animate-spin inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full" />
                   Rechecking...
                 </>
               ) : (
                 <>
-                  <span>🔄</span> Check Conditions Now
+                  <span>🔄</span> Check Conditions
                 </>
               )}
             </button>
@@ -133,17 +179,16 @@ export default function DecisionDetailsModal({
             <button
               onClick={handleSimulateChange}
               disabled={checking || simulating || decision.lifecycle_status === 'CANCELLED'}
-              className="px-3.5 py-2 bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 disabled:opacity-50 text-white font-bold rounded-xl text-xs transition-all shadow-md flex items-center gap-1.5 font-mono"
-              title="Injects 2.8m waves through real decision engine for SIH Demo"
+              className="px-3.5 py-2 bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 disabled:opacity-50 text-white font-bold rounded-xl text-xs transition-all shadow-md font-mono flex items-center gap-1.5"
             >
               {simulating ? (
                 <>
-                  <span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full" />
+                  <span className="animate-spin inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full" />
                   Simulating...
                 </>
               ) : (
                 <>
-                  <span>⚡</span> Simulate Change (2.8m Waves)
+                  <span>⚡</span> Simulate Adverse Waves (2.8m)
                 </>
               )}
             </button>
@@ -151,44 +196,135 @@ export default function DecisionDetailsModal({
         </div>
 
         {/* Change Impact Alert Banner (If Affected) */}
-        {(decision.lifecycle_status === 'ALERT' || recheckResult?.affected) && (
-          <div className="p-4 bg-rose-950/70 border border-rose-800 rounded-xl space-y-2 text-xs">
-            <div className="flex items-center gap-2 font-bold text-rose-300 text-sm">
-              <span className="text-base">⚠️</span> DECISION IMPACT DETECTED — ACTION REQUIRED
+        {isAlert && (
+          <div className="p-4 bg-rose-950/70 border border-rose-800 rounded-xl space-y-3 text-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 font-bold text-rose-300 text-sm">
+                <span className="text-base">⚠️</span> ORIGINAL PLAN AFFECTED — SAFETY LIMIT CROSSED
+              </div>
+              <span className="text-[10px] bg-rose-900 text-rose-200 px-2 py-0.5 rounded font-mono font-bold">
+                ALERT
+              </span>
             </div>
+            
             <p className="text-rose-200 leading-relaxed">
               {recheckResult?.explanation ||
                 `Conditions for ${decision.mission.zone_name} have crossed safety limits. The original ${origDec.status} recommendation is no longer safe.`}
             </p>
 
-            {/* Changed Factors Details */}
-            {recheckResult?.changed_factors && recheckResult.changed_factors.length > 0 && (
-              <div className="mt-2 pt-2 border-t border-rose-800/60 space-y-1 font-mono text-[11px]">
-                {recheckResult.changed_factors.map((f, idx) => (
-                  <div key={idx} className="flex items-center justify-between text-rose-300">
-                    <span>• {f.factor}:</span>
-                    <span>
-                      {f.previous_value} ➔ <strong className="text-white underline">{f.current_value}</strong> ({f.impact})
-                    </span>
-                  </div>
-                ))}
+            {/* Find Safe Options Trigger Button */}
+            <div className="pt-2 border-t border-rose-800/60 flex items-center justify-between">
+              <span className="text-[11px] text-rose-300 font-medium">
+                ORCA can find alternative departure times or safe fishing zones:
+              </span>
+              <button
+                onClick={handleFindRepairOptions}
+                disabled={loadingRepair}
+                className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-lg font-mono flex items-center gap-1.5"
+              >
+                {loadingRepair ? (
+                  <>
+                    <span className="animate-spin inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full" />
+                    Evaluating Alternatives...
+                  </>
+                ) : (
+                  <>
+                    <span>🔧</span> Find Safe Options
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* PHASE 6: REPAIR OPTIONS CARDS (When Generated) */}
+        {repairData && repairData.options && repairData.options.length > 0 && (
+          <div className="p-4 bg-slate-950 border border-cyan-800/80 rounded-2xl space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <div>
+                <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                  <span>🧭</span> Safe Mission Repair Alternatives
+                </h3>
+                <p className="text-[11px] text-slate-400">{repairData.explanation}</p>
               </div>
-            )}
+              <span className="text-[10px] text-cyan-400 font-mono">
+                {repairData.options.length} Candidates Evaluated
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {repairData.options.map((opt) => (
+                <div
+                  key={opt.option_id}
+                  className={`p-3.5 rounded-xl border flex flex-col justify-between space-y-3 transition-all ${
+                    opt.status === 'GO'
+                      ? 'bg-slate-900/90 border-emerald-600/60 hover:border-emerald-500 shadow-md shadow-emerald-950/40'
+                      : opt.status === 'CAUTION'
+                      ? 'bg-slate-900/80 border-amber-700/60'
+                      : 'bg-slate-900/50 border-slate-800 opacity-80'
+                  }`}
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">
+                        #{opt.rank} • {opt.type.replace('_', ' ')}
+                      </span>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                          opt.status === 'GO'
+                            ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                            : opt.status === 'CAUTION'
+                            ? 'bg-amber-950 text-amber-400 border border-amber-800'
+                            : 'bg-rose-950 text-rose-400 border border-rose-800'
+                        }`}
+                      >
+                        {opt.status} ({opt.score})
+                      </span>
+                    </div>
+
+                    <h4 className="font-bold text-xs text-white">{opt.title}</h4>
+                    <p className="text-[11px] text-slate-300 leading-snug">{opt.description}</p>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-800/80">
+                    <button
+                      onClick={() => handleSelectOption(opt)}
+                      disabled={selectingOption === opt.option_id}
+                      className={`w-full py-2 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center gap-1.5 ${
+                        opt.status === 'GO'
+                          ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md'
+                          : opt.status === 'CAUTION'
+                          ? 'bg-amber-600 hover:bg-amber-500 text-white'
+                          : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                      }`}
+                    >
+                      {selectingOption === opt.option_id ? (
+                        <span>Applying...</span>
+                      ) : opt.type === 'WAIT' ? (
+                        <span>⏳ Choose Wait</span>
+                      ) : (
+                        <span>✓ Select This Option</span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
         {/* Side-by-Side Old vs New Comparison Grid */}
         <div>
           <span className="text-xs font-bold text-slate-200 uppercase tracking-wider block mb-2">
-            Living Decision State: Original vs Latest Recheck
+            Living Decision State: Original vs Active Plan
           </span>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             
             {/* Left: Original Snapshot */}
-            <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5">
-              <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-                <span className="text-xs font-bold text-slate-300">Original Decision Snapshot</span>
+            <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
+              <div className="flex justify-between items-center pb-1.5 border-b border-slate-800">
+                <span className="text-xs font-bold text-slate-300">Original Plan Snapshot</span>
                 <span
                   className={`text-xs px-2 py-0.5 rounded font-bold ${
                     origDec.status === 'GO'
@@ -202,30 +338,31 @@ export default function DecisionDetailsModal({
                 </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                <div className="p-2 bg-slate-900 rounded">
+              <div className="grid grid-cols-3 gap-1.5 text-center text-xs">
+                <div className="p-1.5 bg-slate-900 rounded">
                   <span className="text-[10px] text-slate-400 block">Wave</span>
                   <strong className="text-slate-100">{origCond.wave_height_m}m</strong>
                 </div>
-                <div className="p-2 bg-slate-900 rounded">
+                <div className="p-1.5 bg-slate-900 rounded">
                   <span className="text-[10px] text-slate-400 block">Wind</span>
                   <strong className="text-slate-100">{origCond.wind_speed_kmh} km/h</strong>
                 </div>
-                <div className="p-2 bg-slate-900 rounded">
+                <div className="p-1.5 bg-slate-900 rounded">
                   <span className="text-[10px] text-slate-400 block">PFZ</span>
                   <strong className="text-cyan-400">{origDec.fishing_score}/100</strong>
                 </div>
               </div>
 
-              <div className="text-[11px] text-slate-400 pt-1">
+              <div className="text-[10px] text-slate-400 pt-1 font-mono flex justify-between">
+                <span>Target: {decision.original_conditions.location.name || decision.mission.zone_name}</span>
                 <span>Recorded: {new Date(decision.created_at).toLocaleTimeString()}</span>
               </div>
             </div>
 
-            {/* Right: Latest Re-evaluation */}
-            <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5">
-              <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-                <span className="text-xs font-bold text-slate-300">Latest Re-evaluation</span>
+            {/* Right: Active Current Plan */}
+            <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
+              <div className="flex justify-between items-center pb-1.5 border-b border-slate-800">
+                <span className="text-xs font-bold text-slate-300">Active Current Plan</span>
                 <span
                   className={`text-xs px-2 py-0.5 rounded font-bold ${
                     latestDec.status === 'GO'
@@ -239,24 +376,27 @@ export default function DecisionDetailsModal({
                 </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                <div className="p-2 bg-slate-900 rounded">
+              <div className="grid grid-cols-3 gap-1.5 text-center text-xs">
+                <div className="p-1.5 bg-slate-900 rounded">
                   <span className="text-[10px] text-slate-400 block">Wave</span>
                   <strong className={latestCond.wave_height_m > 2.5 ? 'text-rose-400 font-bold' : 'text-slate-100'}>
                     {latestCond.wave_height_m}m
                   </strong>
                 </div>
-                <div className="p-2 bg-slate-900 rounded">
+                <div className="p-1.5 bg-slate-900 rounded">
                   <span className="text-[10px] text-slate-400 block">Wind</span>
                   <strong className="text-slate-100">{latestCond.wind_speed_kmh} km/h</strong>
                 </div>
-                <div className="p-2 bg-slate-900 rounded">
-                  <span className="text-[10px] text-slate-400 block">Data Source</span>
-                  <span className="text-[10px] text-cyan-400 font-mono uppercase">{latestCond.data_source}</span>
+                <div className="p-1.5 bg-slate-900 rounded">
+                  <span className="text-[10px] text-slate-400 block">Departure</span>
+                  <span className="text-[10px] text-cyan-400 font-mono">
+                    {new Date(decision.mission.planned_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
                 </div>
               </div>
 
-              <div className="text-[11px] text-slate-400 pt-1">
+              <div className="text-[10px] text-slate-400 pt-1 font-mono flex justify-between">
+                <span>Sector: {decision.mission.zone_name}</span>
                 <span>Verified: {new Date(decision.last_checked_at).toLocaleTimeString()}</span>
               </div>
             </div>
@@ -267,15 +407,17 @@ export default function DecisionDetailsModal({
         {/* Change History Timeline */}
         {decision.change_history && decision.change_history.length > 0 && (
           <div>
-            <span className="text-xs font-bold text-slate-200 uppercase tracking-wider block mb-2">
-              Verification & Change History ({decision.change_history.length} Rechecks Logged):
+            <span className="text-xs font-bold text-slate-200 uppercase tracking-wider block mb-1.5">
+              Living Decision Lifecycle History ({decision.change_history.length} Events):
             </span>
-            <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
+            <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
               {decision.change_history.map((h, i) => (
                 <div
                   key={i}
-                  className={`p-2.5 rounded-xl border text-xs flex items-center justify-between ${
-                    h.affected
+                  className={`p-2 rounded-xl border text-xs flex items-center justify-between ${
+                    h.action_taken
+                      ? 'bg-cyan-950/40 border-cyan-800 text-cyan-300'
+                      : h.affected
                       ? 'bg-rose-950/40 border-rose-800 text-rose-300'
                       : 'bg-slate-950/80 border-slate-800 text-slate-300'
                   }`}
@@ -288,10 +430,14 @@ export default function DecisionDetailsModal({
                   </div>
                   <span
                     className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
-                      h.affected ? 'bg-rose-900 text-white' : 'bg-emerald-950 text-emerald-300'
+                      h.action_taken
+                        ? 'bg-cyan-900 text-white'
+                        : h.affected
+                        ? 'bg-rose-900 text-white'
+                        : 'bg-emerald-950 text-emerald-300'
                     }`}
                   >
-                    {h.affected ? 'AFFECTED' : 'STABLE'}
+                    {h.action_taken || (h.affected ? 'AFFECTED' : 'STABLE')}
                   </span>
                 </div>
               ))}

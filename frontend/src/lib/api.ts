@@ -10,7 +10,9 @@ import {
   DecisionObject,
   TrackDecisionRequest,
   TrackDecisionResponse,
-  RecheckResponse
+  RecheckResponse,
+  RepairResponse,
+  SelectRepairResponse
 } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
@@ -108,6 +110,27 @@ export async function simulateConditionChange(decisionId: string, overrideCondit
     cache: 'no-store',
   });
   if (!res.ok) throw new Error(`Simulate condition change failed: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchRepairOptions(decisionId: string): Promise<RepairResponse> {
+  const res = await fetch(`${API_BASE_URL}/decisions/${decisionId}/repair`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Fetch repair options failed: ${res.status}`);
+  return res.json();
+}
+
+export async function selectRepairOption(decisionId: string, optionId: string): Promise<SelectRepairResponse> {
+  const res = await fetch(`${API_BASE_URL}/decisions/${decisionId}/repair/select`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ option_id: optionId }),
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Select repair option failed: ${res.status}`);
   return res.json();
 }
 

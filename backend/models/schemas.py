@@ -107,7 +107,26 @@ class ChangeHistoryEntry(BaseModel):
     changed_factors: List[ChangedFactor] = []
     summary: str
     explanation: Optional[str] = None
-    conditions_snapshot: MarineConditions
+    conditions_snapshot: Optional[MarineConditions] = None
+    action_taken: Optional[str] = None
+
+class RepairOption(BaseModel):
+    option_id: str
+    type: str  # "TIME_CHANGE" | "ZONE_CHANGE" | "WAIT" | "COMBINED"
+    title: str
+    description: str
+    zone_id: str
+    zone_name: str
+    planned_start: str
+    status: str  # "GO" | "CAUTION" | "WAIT"
+    score: int
+    safety_score: int
+    fishing_score: int
+    effort_score: int
+    reasons: List[str] = []
+    explanation: Optional[str] = None
+    conditions: Optional[MarineConditions] = None
+    rank: int = 1
 
 class DecisionObject(BaseModel):
     decision_id: str
@@ -121,12 +140,12 @@ class DecisionObject(BaseModel):
     thresholds_snapshot: Dict[str, Any]
     latest_decision: Optional[DecisionSnapshot] = None
     latest_conditions: Optional[MarineConditions] = None
-    lifecycle_status: str = "TRACKING"  # TRACKING | ALERT | CHANGED | REPAIRED | WAITING | CANCELLED
+    lifecycle_status: str = "TRACKING"  # TRACKING | ALERT | REPAIRED | WAITING | CANCELLED
     tracking_enabled: bool = True
     current_status: str = "TRACKING"
     change_history: List[ChangeHistoryEntry] = []
-    repair_options: List[Dict[str, Any]] = []
-    selected_action: Optional[Dict[str, Any]] = None
+    repair_options: List[RepairOption] = []
+    selected_action: Optional[RepairOption] = None
     feedback: Optional[Dict[str, Any]] = None
 
 class TrackDecisionRequest(BaseModel):
@@ -161,6 +180,25 @@ class RecheckResponse(BaseModel):
     summary: str
     explanation: str
     last_checked_at: str
+    decision: DecisionObject
+
+class RepairResponse(BaseModel):
+    decision_id: str
+    original_status: str
+    current_status: str
+    repair_available: bool
+    options: List[RepairOption]
+    summary: str
+    explanation: str
+
+class SelectRepairRequest(BaseModel):
+    option_id: str
+
+class SelectRepairResponse(BaseModel):
+    decision_id: str
+    status: str
+    message: str
+    selected_option: RepairOption
     decision: DecisionObject
 
 class QueryRequest(BaseModel):

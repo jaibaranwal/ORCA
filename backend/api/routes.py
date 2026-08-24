@@ -17,7 +17,10 @@ from models.schemas import (
     TrackDecisionResponse,
     DecisionObject,
     RecheckRequest,
-    RecheckResponse
+    RecheckResponse,
+    RepairResponse,
+    SelectRepairRequest,
+    SelectRepairResponse
 )
 from modules.decision_store import (
     create_and_store_decision,
@@ -31,6 +34,7 @@ from modules.decision_engine import evaluate_decision
 from modules.query_understanding import understand_user_query
 from modules.explanation import explain_decision
 from modules.decision_watch import check_decision_conditions
+from modules.decision_repair import generate_repair_options, apply_repair_selection
 from adapters.pfz_adapter import PFZAdapter
 from adapters.boundary_adapter import BoundaryAdapter
 
@@ -44,15 +48,16 @@ async def health_check():
     return HealthResponse(
         status="healthy",
         service="ORCA Marine Decision Support Engine",
-        version="1.0.0-phase5",
+        version="1.0.0-phase6",
         timestamp=datetime.utcnow().isoformat() + "Z",
-        phase="Phase 5 - Decision Watch & Condition Change Detection",
+        phase="Phase 6 - Living Decision Repair & Wait Engine",
         details={
             "database": "SQLite Decision Store Active",
             "decision_engine": "Deterministic Rules Active (GO/CAUTION/WAIT)",
             "boundary_checker": "Shapely Point-in-Polygon Active",
             "query_understanding": "Gemini 2.5 Flash + Multilingual Fallback",
             "decision_watch": "Living Decision Watch & Meaningful Change Detector Active",
+            "repair_engine": "Deterministic Repair & Wait Strategy Generator Active",
             "environment": os.getenv("DEMO_MODE", "true")
         }
     )
@@ -227,21 +232,12 @@ async def cancel_tracked_decision(decision_id: str = Path(...)):
         "decision": updated
     }
 
-# -------------------------------------------------------------
-# PHASE 5: DECISION WATCH & CONDITION CHANGE DETECTION
-# -------------------------------------------------------------
-
 @router.post("/decisions/{decision_id}/check", response_model=RecheckResponse)
 @router.post("/decisions/{decision_id}/watch", response_model=RecheckResponse)
 async def recheck_tracked_decision(
     decision_id: str = Path(...),
     req: Optional[RecheckRequest] = Body(None)
 ):
-    """
-    Executes Living Decision Watch:
-    Re-evaluates latest marine conditions against original decision thresholds
-    and logs change history.
-    """
     override = req.override_conditions if req else None
     try:
         return await check_decision_conditions(decision_id, override_conditions=override)
@@ -253,13 +249,38 @@ async def simulate_condition_change(
     decision_id: str = Path(...),
     req: Optional[RecheckRequest] = Body(None)
 ):
-    """
-    Controlled SIH Demo Endpoint:
-    Injects simulated adverse condition shift (wave_height_m: 2.8m) through the real decision engine.
-    """
     override = req.override_conditions if (req and req.override_conditions) else {"wave_height_m": 2.8}
     try:
         return await check_decision_conditions(decision_id, override_conditions=override)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+# -------------------------------------------------------------
+# PHASE 6: LIVING DECISION REPAIR & WAIT ENGINE ENDPOINTS
+# -------------------------------------------------------------
+
+@router.post("/decisions/{decision_id}/repair", response_model=RepairResponse)
+async def get_decision_repair_options(decision_id: str = Path(...)):
+    """
+    Generates and deterministically ranks safe repair alternatives (Time Shift, Zone Shift, Wait)
+    to preserve the user's original objective safely.
+    """
+    try:
+        return await generate_repair_options(decision_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@router.post("/decisions/{decision_id}/repair/select", response_model=SelectRepairResponse)
+async def select_decision_repair_option(
+    decision_id: str = Path(...),
+    req: SelectRepairRequest = Body(...)
+):
+    """
+    Applies user's chosen repair alternative or WAIT strategy, updates the active mission,
+    preserves original decision snapshot, and continues active watch.
+    """
+    try:
+        return await apply_repair_selection(decision_id, req.option_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
