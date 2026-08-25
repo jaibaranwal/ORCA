@@ -16,49 +16,45 @@ export default function Header({
   onResetDemo,
 }: HeaderProps) {
   return (
-    <header className="border-b border-slate-800 bg-slate-900 px-5 py-2.5 flex items-center justify-between sticky top-0 z-50">
-      {/* Brand & Subtitle */}
+    <header className="h-14 border-b border-slate-800 bg-slate-900/90 backdrop-blur px-5 flex items-center justify-between sticky top-0 z-50">
+      {/* Brand Logo & Name */}
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-sky-600/20 border border-sky-500/40 flex items-center justify-center text-sky-400 font-bold text-lg">
-          ⚓
+        <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 2v20m0-20l-4 4m4-4l4 4M4 12h16" />
+          </svg>
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="font-bold text-sm tracking-wide text-white uppercase font-mono">
-              ORCA
-            </h1>
-            <span className="text-xs text-slate-400 font-medium">
-              Marine Decision Support System
-            </span>
+            <span className="font-bold text-base text-white tracking-tight">ORCA</span>
+            <span className="text-xs text-slate-400 font-normal">Marine Decision Support</span>
           </div>
         </div>
       </div>
 
-      {/* Operational Selectors & Actions */}
-      <div className="flex items-center gap-3 text-xs font-mono">
-        {/* User Role & Base */}
-        <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 bg-slate-950 border border-slate-800 rounded-lg text-slate-300 text-[11px]">
-          <span className="w-2 h-2 rounded-full bg-emerald-400" />
-          <span>Role: Fisherman</span>
-          <span className="text-slate-600">|</span>
-          <span>Base: {userOrigin.name || 'Kochi Port'}</span>
+      {/* Center/Right Status & Controls */}
+      <div className="flex items-center gap-3 text-xs">
+        {/* Active Vessel & Base */}
+        <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-slate-800/80 border border-slate-700/60 rounded-md text-slate-300">
+          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+          <span className="text-slate-400">Vessel Base:</span>
+          <span className="font-medium text-white">{userOrigin.name || 'Kochi Port'}</span>
         </div>
 
         {/* Language Toggle */}
         <button
           onClick={onToggleLanguage}
-          className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-200 text-[11px] font-bold transition-all"
+          className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-md text-slate-200 font-medium transition-colors"
         >
-          🌐 {language.toUpperCase()}
+          {language === 'en' ? 'English' : 'हिंदी'}
         </button>
 
-        {/* Reset Demo State */}
+        {/* Demo Reset */}
         <button
           onClick={onResetDemo}
-          className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg text-[11px] transition-all"
-          title="Reset decisions in SQLite for fresh demo"
+          className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 rounded-md font-medium transition-colors"
         >
-          ↻ Reset
+          Reset Demo
         </button>
       </div>
     </header>

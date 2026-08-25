@@ -141,7 +141,7 @@ export default function MarineSidePanel({
         origin: userOrigin,
       });
       onDecisionEvaluated(res);
-      showToast('info', `Sector ${res.zone_name} evaluated as ${res.status} (${res.score}/100)`);
+      showToast('info', `Sector ${res.zone_name} evaluated as ${res.status}`);
     } catch (err: any) {
       showToast('alert', err.message || 'Evaluation failed');
     } finally {
@@ -163,7 +163,7 @@ export default function MarineSidePanel({
         planned_start: new Date().toISOString(),
       });
       onDecisionTracked(res.decision);
-      showToast('success', `Decision registered & living watch active: ${res.decision.decision_id}`);
+      showToast('success', `Decision registered: ${res.decision.decision_id}`);
     } catch (err: any) {
       showToast('alert', err.message || 'Failed to track decision');
     } finally {
@@ -181,7 +181,7 @@ export default function MarineSidePanel({
       if (res.affected) {
         showToast('alert', 'Environmental change detected: Saved plan is affected.');
       } else {
-        showToast('success', 'Conditions verified stable. Recommendation remains valid.');
+        showToast('success', 'Conditions verified stable. Plan remains safe.');
       }
     } catch (err: any) {
       showToast('alert', err.message || 'Check failed');
@@ -197,7 +197,7 @@ export default function MarineSidePanel({
     try {
       const res = await simulateConditionChange(trackedDecision.decision_id, { wave_height_m: 2.8 });
       onDecisionUpdated(res.decision);
-      showToast('alert', 'Simulated 2.8m wave change injected. Safety limit crossed!');
+      showToast('alert', 'Simulated 2.8m wave change injected. Safety limit crossed.');
     } catch (err: any) {
       showToast('alert', err.message || 'Simulation failed');
     } finally {
@@ -251,7 +251,7 @@ export default function MarineSidePanel({
       setFeedbackResult(res);
       setShowFeedbackModal(false);
       onDecisionUpdated(res.decision);
-      showToast('success', 'Mission Completed! Prediction vs Actual outcome recorded.');
+      showToast('success', 'Mission completed. Outcome recorded.');
     } catch (err: any) {
       showToast('alert', err.message || 'Failed to record feedback');
     } finally {
@@ -260,31 +260,30 @@ export default function MarineSidePanel({
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col justify-between h-full shadow-lg space-y-3.5 overflow-y-auto">
+    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4.5 flex flex-col justify-between h-full space-y-4 overflow-y-auto">
       
       {/* Toast Notification */}
       {notification && (
         <div
-          className={`p-2.5 rounded-xl text-xs font-mono flex items-center gap-2 border ${
+          className={`p-3 rounded-lg text-xs flex items-center gap-2 border font-medium ${
             notification.type === 'alert'
-              ? 'bg-rose-950/90 border-rose-700 text-rose-200'
+              ? 'bg-rose-950/60 border-rose-800/80 text-rose-200'
               : notification.type === 'success'
-              ? 'bg-emerald-950/90 border-emerald-700 text-emerald-200'
-              : 'bg-cyan-950/90 border-cyan-700 text-cyan-200'
+              ? 'bg-emerald-950/60 border-emerald-800/80 text-emerald-200'
+              : 'bg-blue-950/60 border-blue-800/80 text-blue-200'
           }`}
         >
-          <span>{notification.type === 'alert' ? '⚠️' : '✓'}</span>
           <span>{notification.message}</span>
         </div>
       )}
 
-      {/* SECTION 1: ASK ORCA (Natural Language Query) */}
+      {/* SECTION 1: SEARCH & NATURAL INQUIRY */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-bold text-slate-200 uppercase tracking-wider font-mono">
+          <span className="text-xs font-semibold text-slate-300">
             Ask ORCA
-          </label>
-          <span className="text-[10px] text-slate-400 font-mono">English / Hindi / Hinglish</span>
+          </span>
+          <span className="text-[11px] text-slate-400">Natural Language Assistant</span>
         </div>
 
         <form
@@ -298,109 +297,109 @@ export default function MarineSidePanel({
             type="text"
             value={queryInput}
             onChange={(e) => setQueryInput(e.target.value)}
-            placeholder="Ask where to fish or check sea safety..."
+            placeholder="Ask where to fish or check sector safety..."
             disabled={queryLoading}
-            className="flex-1 px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder:text-slate-500 outline-none focus:border-cyan-500 transition-all font-sans"
+            className="flex-1 px-3.5 py-2 bg-slate-950 border border-slate-700/80 rounded-lg text-xs text-white placeholder:text-slate-500 outline-none focus:border-blue-500 transition-colors"
           />
           <button
             type="submit"
             disabled={!queryInput.trim() || queryLoading}
-            className="px-3.5 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white font-bold rounded-xl text-xs font-mono transition-all shrink-0"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium rounded-lg text-xs transition-colors shrink-0"
           >
-            {queryLoading ? '...' : 'Ask'}
+            {queryLoading ? 'Searching...' : 'Search'}
           </button>
         </form>
 
-        {/* Suggestion Chips */}
+        {/* Prompt Suggestions */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
           {PROMPT_SUGGESTIONS.map((s, i) => (
             <button
               key={i}
               onClick={() => handleQuerySubmit(s)}
               disabled={queryLoading}
-              className="text-[10px] px-2 py-1 rounded-lg bg-slate-950/80 border border-slate-800 hover:border-cyan-600 text-slate-300 whitespace-nowrap transition-all font-mono"
+              className="text-[11px] px-2.5 py-1 rounded-md bg-slate-800/70 hover:bg-slate-800 border border-slate-700/60 text-slate-300 whitespace-nowrap transition-colors"
             >
               {s}
             </button>
           ))}
         </div>
 
-        {/* Chat History Snippet */}
+        {/* Recent Chat Responses */}
         {chatHistory.length > 0 && (
-          <div className="p-2.5 bg-slate-950 border border-slate-800 rounded-xl max-h-24 overflow-y-auto space-y-1.5 text-xs font-sans">
+          <div className="p-3 bg-slate-950/80 border border-slate-800 rounded-lg max-h-24 overflow-y-auto space-y-1.5 text-xs">
             {chatHistory.slice(-2).map((item, idx) => (
-              <div key={idx} className="leading-snug">
-                <strong className={item.sender === 'user' ? 'text-cyan-400' : 'text-emerald-400 font-mono text-[11px]'}>
+              <div key={idx} className="leading-relaxed">
+                <span className={item.sender === 'user' ? 'text-blue-400 font-medium' : 'text-emerald-400 font-medium'}>
                   {item.sender === 'user' ? 'You: ' : 'ORCA: '}
-                </strong>
-                <span className="text-slate-300 text-[11px]">{item.text}</span>
+                </span>
+                <span className="text-slate-300">{item.text}</span>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      <div className="h-[1px] bg-slate-800" />
+      <div className="h-[1px] bg-slate-800/80" />
 
-      {/* SECTION 2: EVALUATE & ACTIVE DECISION */}
+      {/* SECTION 2: EVALUATE & DECISION CARD */}
       {decision ? (
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-[10px] text-slate-400 font-mono uppercase block">Target Sector</span>
-              <h3 className="font-bold text-sm text-white">{decision.zone_name}</h3>
+              <span className="text-[11px] text-slate-400 block font-medium">Selected Sector</span>
+              <h3 className="font-semibold text-sm text-white">{decision.zone_name}</h3>
             </div>
 
             <div className="flex items-center gap-2">
               <span
-                className={`px-3 py-1 rounded-full text-xs font-mono font-bold ${
+                className={`px-3 py-1 rounded-full text-xs font-semibold ${
                   decision.status === 'GO'
-                    ? 'bg-emerald-950 text-emerald-300 border border-emerald-600'
+                    ? 'bg-emerald-950 text-emerald-300 border border-emerald-700'
                     : decision.status === 'CAUTION'
-                    ? 'bg-amber-950 text-amber-300 border border-amber-600'
-                    : 'bg-rose-950 text-rose-300 border border-rose-600'
+                    ? 'bg-amber-950 text-amber-300 border border-amber-700'
+                    : 'bg-rose-950 text-rose-300 border border-rose-700'
                 }`}
               >
-                {decision.status === 'GO' ? '🟢 GO' : decision.status === 'CAUTION' ? '🟡 CAUTION' : '🔴 WAIT'} ({decision.score}/100)
+                {decision.status === 'GO' ? 'GO — Recommended' : decision.status === 'CAUTION' ? 'CAUTION — Marginal' : 'WAIT — Unsafe'}
               </span>
             </div>
           </div>
 
-          {/* Telemetry Matrix (Wave, Wind, PFZ, Distance, Boundary) */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-xs font-mono">
-            <div className="p-2 bg-slate-950 border border-slate-800 rounded-xl">
-              <span className="text-[10px] text-slate-400 block">Wave Height</span>
-              <strong className="text-slate-100 text-xs">
+          {/* Metric Telemetry Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+            <div className="p-2.5 bg-slate-950 border border-slate-800 rounded-lg">
+              <span className="text-[11px] text-slate-400 block">Wave Height</span>
+              <span className="text-slate-100 font-semibold mt-0.5 block">
                 {decision.conditions?.wave_height_m || 1.4} m
-              </strong>
+              </span>
             </div>
 
-            <div className="p-2 bg-slate-950 border border-slate-800 rounded-xl">
-              <span className="text-[10px] text-slate-400 block">Wind Speed</span>
-              <strong className="text-slate-100 text-xs">
+            <div className="p-2.5 bg-slate-950 border border-slate-800 rounded-lg">
+              <span className="text-[11px] text-slate-400 block">Wind Speed</span>
+              <span className="text-slate-100 font-semibold mt-0.5 block">
                 {decision.conditions?.wind_speed_kmh || 12.0} km/h
-              </strong>
+              </span>
             </div>
 
-            <div className="p-2 bg-slate-950 border border-slate-800 rounded-xl">
-              <span className="text-[10px] text-slate-400 block">PFZ Score</span>
-              <strong className="text-cyan-400 text-xs">
+            <div className="p-2.5 bg-slate-950 border border-slate-800 rounded-lg">
+              <span className="text-[11px] text-slate-400 block">PFZ Potential</span>
+              <span className="text-blue-400 font-semibold mt-0.5 block">
                 {decision.fishing_score}/100
-              </strong>
+              </span>
             </div>
 
-            <div className="p-2 bg-slate-950 border border-slate-800 rounded-xl">
-              <span className="text-[10px] text-slate-400 block">Boundary</span>
-              <strong className={decision.boundary_violation ? 'text-rose-400 text-xs' : 'text-emerald-400 text-xs'}>
-                {decision.boundary_violation ? 'Violated' : 'Clear'}
-              </strong>
+            <div className="p-2.5 bg-slate-950 border border-slate-800 rounded-lg">
+              <span className="text-[11px] text-slate-400 block">Boundary Status</span>
+              <span className={`font-semibold mt-0.5 block ${decision.boundary_violation ? 'text-rose-400' : 'text-emerald-400'}`}>
+                {decision.boundary_violation ? 'Restricted' : 'Clear'}
+              </span>
             </div>
           </div>
 
-          {/* Plain Language Grounded Explanation */}
+          {/* Factual Grounded Explanation */}
           {decision.explanation && (
-            <div className="p-2.5 bg-slate-950/70 border border-slate-800 rounded-xl text-[11px] text-slate-300 leading-relaxed font-sans italic">
-              "{decision.explanation}"
+            <div className="p-3 bg-slate-950/70 border border-slate-800/90 rounded-lg text-xs text-slate-300 leading-relaxed">
+              {decision.explanation}
             </div>
           )}
 
@@ -409,17 +408,17 @@ export default function MarineSidePanel({
             <button
               onClick={handleTrackDecision}
               disabled={tracking}
-              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded-xl text-xs font-mono transition-all shadow-md flex items-center justify-center gap-1.5"
+              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold rounded-lg text-xs transition-colors shadow-sm"
             >
-              {tracking ? 'Saving Decision Object...' : '📌 Track Decision (Activate Living Watch)'}
+              {tracking ? 'Saving Decision...' : 'Track Decision (Save to Living Registry)'}
             </button>
           )}
         </div>
       ) : (
-        /* Sector Quick Picker if no decision generated yet */
-        <div className="space-y-2">
-          <span className="text-xs font-bold text-slate-300 font-mono uppercase block">
-            Select Fishing Sector to Evaluate:
+        /* Sector Quick Picker if no active decision */
+        <div className="space-y-2.5">
+          <span className="text-xs font-semibold text-slate-300 block">
+            Select Sector to Evaluate:
           </span>
           <div className="grid grid-cols-3 gap-2">
             {zones.map((z) => {
@@ -428,14 +427,14 @@ export default function MarineSidePanel({
                 <button
                   key={z.zone_id}
                   onClick={() => onSelectZone(z)}
-                  className={`p-2 rounded-xl border text-left transition-all ${
+                  className={`p-2.5 rounded-lg border text-left transition-colors ${
                     isSelected
-                      ? 'bg-cyan-950/80 border-cyan-500 text-white'
+                      ? 'bg-blue-950/50 border-blue-500 text-white'
                       : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
                   }`}
                 >
                   <strong className="text-xs block truncate">{z.zone_name.split(' ')[0]}</strong>
-                  <span className="text-[10px] text-cyan-400 font-mono block mt-0.5">PFZ {z.pfz_score}</span>
+                  <span className="text-[11px] text-blue-400 block mt-0.5">PFZ {z.pfz_score}</span>
                 </button>
               );
             })}
@@ -444,23 +443,23 @@ export default function MarineSidePanel({
           <button
             onClick={handleEvaluateZone}
             disabled={!selectedZone || evaluating}
-            className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white font-bold rounded-xl text-xs font-mono transition-all mt-1"
+            className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium rounded-lg text-xs transition-colors mt-1"
           >
-            {evaluating ? 'Evaluating Safety Rules...' : `Evaluate ${selectedZone?.zone_name || 'Sector'}`}
+            {evaluating ? 'Evaluating...' : `Evaluate ${selectedZone?.zone_name || 'Sector'}`}
           </button>
         </div>
       )}
 
       {/* SECTION 3: LIVING DECISION WATCH (When Tracked) */}
       {trackedDecision && !isCompleted && (
-        <div className="p-3 bg-slate-950 border border-cyan-800/80 rounded-xl space-y-2.5">
-          <div className="flex items-center justify-between text-xs font-mono">
+        <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-lg space-y-2.5">
+          <div className="flex items-center justify-between text-xs">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <strong className="text-white">✓ WATCHING</strong>
-              <span className="text-[10px] text-slate-400">({trackedDecision.decision_id})</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <strong className="text-white font-semibold">Monitoring Active</strong>
+              <span className="text-slate-400">({trackedDecision.decision_id})</span>
             </div>
-            <span className="text-[10px] text-slate-400">
+            <span className="text-[11px] text-slate-400">
               Saved: {new Date(trackedDecision.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
@@ -469,41 +468,41 @@ export default function MarineSidePanel({
             <button
               onClick={handleCheckConditions}
               disabled={checking || simulating}
-              className="py-1.5 px-3 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 rounded-lg text-xs font-mono transition-all flex items-center justify-center gap-1"
+              className="py-1.5 px-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-md text-xs font-medium transition-colors"
             >
-              {checking ? 'Checking...' : '🔄 Check Again'}
+              {checking ? 'Checking...' : 'Check Conditions'}
             </button>
 
             <button
               onClick={handleSimulateChange}
               disabled={checking || simulating}
-              className="py-1.5 px-3 bg-amber-950 hover:bg-amber-900 border border-amber-700 text-amber-200 rounded-lg text-xs font-mono transition-all flex items-center justify-center gap-1"
+              className="py-1.5 px-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 rounded-md text-xs font-medium transition-colors"
               title="Demo condition change simulation (Wave 2.8m)"
             >
-              {simulating ? 'Simulating...' : '⚡ Simulate Change'}
+              {simulating ? 'Simulating...' : 'Simulate Change'}
             </button>
           </div>
         </div>
       )}
 
-      {/* SECTION 4: ALERT & REPAIR ALTERNATIVES (When Conditions Change) */}
+      {/* SECTION 4: ALERT & REPAIR ALTERNATIVES */}
       {isAlert && !isCompleted && (
-        <div className="p-3 bg-rose-950/80 border border-rose-700 rounded-xl space-y-2.5 text-xs">
-          <div className="flex items-center justify-between font-mono">
-            <span className="font-bold text-rose-200 flex items-center gap-1.5">
-              <span>⚠️</span> ALERT: CONDITION CHANGED
+        <div className="p-3.5 bg-rose-950/40 border border-rose-800/80 rounded-lg space-y-2.5 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="font-semibold text-rose-200">
+              Condition Alert: Safety Limit Crossed
             </span>
-            <span className="text-[10px] px-2 py-0.5 rounded bg-rose-900 text-white font-bold">
-              LIMIT EXCEEDED
+            <span className="text-[11px] px-2 py-0.5 rounded bg-rose-900/80 text-rose-200 font-medium">
+              Action Required
             </span>
           </div>
 
-          <div className="p-2 bg-rose-900/40 rounded-lg font-mono text-[11px] text-rose-200 flex justify-between">
+          <div className="p-2 bg-rose-900/20 rounded border border-rose-900/40 text-[11px] text-rose-200 flex justify-between">
             <span>Wave Height: 1.4m → <strong>2.8m</strong> (Safe Limit: 2.5m)</span>
-            <span className="text-white font-bold">GO ➔ WAIT</span>
+            <span className="text-white font-medium">GO ➔ WAIT</span>
           </div>
 
-          <p className="text-[11px] text-rose-200 leading-snug">
+          <p className="text-[11px] text-rose-200 leading-relaxed">
             Wave height has crossed safe operational thresholds. The original plan is no longer safe.
           </p>
 
@@ -511,28 +510,28 @@ export default function MarineSidePanel({
             <button
               onClick={handleFindRepairOptions}
               disabled={loadingRepair}
-              className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs font-mono transition-all flex items-center justify-center gap-1"
+              className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded-lg text-xs transition-colors"
             >
-              {loadingRepair ? 'Generating Safe Options...' : '🔧 Find Verified Safe Alternatives'}
+              {loadingRepair ? 'Evaluating Options...' : 'Find Safe Alternatives'}
             </button>
           ) : (
-            <div className="space-y-1.5 pt-1 border-t border-rose-800">
-              <span className="text-[10px] text-slate-300 font-bold uppercase font-mono block">
-                Verified Alternatives (Evaluated by Rule Engine):
+            <div className="space-y-2 pt-1 border-t border-rose-900/60">
+              <span className="text-[11px] text-slate-300 font-semibold block">
+                Verified Alternatives:
               </span>
               {repairData.options.map((opt) => (
                 <div
                   key={opt.option_id}
-                  className="p-2 bg-slate-900 border border-slate-700 rounded-lg flex items-center justify-between gap-2"
+                  className="p-2.5 bg-slate-900 border border-slate-700/80 rounded-md flex items-center justify-between gap-2"
                 >
                   <div className="text-xs">
-                    <span className="font-bold text-white block text-[11px]">{opt.title}</span>
-                    <span className="text-[10px] text-emerald-400 font-mono">{opt.status} ({opt.score}/100)</span>
+                    <span className="font-medium text-white block">{opt.title}</span>
+                    <span className="text-[11px] text-emerald-400">{opt.status} ({opt.score}/100)</span>
                   </div>
                   <button
                     onClick={() => handleSelectRepairOption(opt)}
                     disabled={selectingOption === opt.option_id}
-                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold rounded font-mono shrink-0"
+                    className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium rounded transition-colors shrink-0"
                   >
                     {selectingOption === opt.option_id ? '...' : opt.type === 'WAIT' ? 'Wait' : 'Select'}
                   </button>
@@ -545,12 +544,12 @@ export default function MarineSidePanel({
 
       {/* SECTION 5: REPAIRED STATUS BANNER */}
       {isRepaired && !isCompleted && (
-        <div className="p-3 bg-cyan-950/80 border border-cyan-700 rounded-xl space-y-1.5 text-xs font-mono">
-          <div className="flex items-center justify-between text-cyan-300 font-bold">
-            <span>✓ MISSION REPAIRED</span>
-            <span className="text-[10px] text-cyan-400 font-normal">Active Monitoring</span>
+        <div className="p-3 bg-blue-950/40 border border-blue-800/80 rounded-lg space-y-1 text-xs">
+          <div className="flex items-center justify-between text-blue-200 font-semibold">
+            <span>Mission Repaired</span>
+            <span className="text-[11px] text-blue-400 font-normal">Active Monitoring</span>
           </div>
-          <p className="text-[11px] text-slate-300 font-sans">
+          <p className="text-[11px] text-slate-300">
             Plan updated to: <strong>{trackedDecision.mission.zone_name}</strong> (Departure adjusted for calm sea state).
           </p>
         </div>
@@ -560,33 +559,37 @@ export default function MarineSidePanel({
       {trackedDecision && !isCompleted && (
         <button
           onClick={() => setShowFeedbackModal(true)}
-          className="w-full py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold rounded-xl text-xs font-mono transition-all flex items-center justify-center gap-1.5"
+          className="w-full py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-medium rounded-lg text-xs transition-colors"
         >
-          <span>✓</span> Complete Mission & Capture Outcome
+          Complete Mission & Record Outcome
         </button>
       )}
 
       {/* COMPLETED OUTCOME CARD */}
       {(isCompleted || trackedDecision?.feedback || feedbackResult) && (
-        <div className="p-3.5 bg-slate-950 border border-emerald-700 rounded-xl space-y-2 text-xs font-mono">
-          <div className="flex items-center justify-between pb-1 border-b border-slate-800 text-emerald-400 font-bold">
-            <span>✓ MISSION COMPLETED</span>
-            <span className="text-[10px] text-slate-400">Outcome Recorded</span>
+        <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-lg space-y-2 text-xs">
+          <div className="flex items-center justify-between pb-1 border-b border-slate-800 text-emerald-400 font-semibold">
+            <span>Mission Completed</span>
+            <span className="text-[11px] text-slate-400 font-normal">Outcome Recorded</span>
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-[11px]">
-            <div className="p-1.5 bg-slate-900 rounded">
-              <span className="text-[10px] text-slate-400 block">Wave (Pred vs Actual)</span>
-              <strong className="text-white">1.35m → {trackedDecision?.feedback?.actual_wave_height_m || actualWave}m (✓ Close)</strong>
+            <div className="p-2 bg-slate-900 border border-slate-800 rounded">
+              <span className="text-[11px] text-slate-400 block">Wave (Pred vs Actual)</span>
+              <span className="text-white font-medium block mt-0.5">
+                1.35m → {trackedDecision?.feedback?.actual_wave_height_m || actualWave}m (Close)
+              </span>
             </div>
-            <div className="p-1.5 bg-slate-900 rounded">
-              <span className="text-[10px] text-slate-400 block">Wind (Pred vs Actual)</span>
-              <strong className="text-white">12.5 → {trackedDecision?.feedback?.actual_wind_speed_kmh || actualWind} km/h (✓ Close)</strong>
+            <div className="p-2 bg-slate-900 border border-slate-800 rounded">
+              <span className="text-[11px] text-slate-400 block">Wind (Pred vs Actual)</span>
+              <span className="text-white font-medium block mt-0.5">
+                12.5 → {trackedDecision?.feedback?.actual_wind_speed_kmh || actualWind} km/h (Close)
+              </span>
             </div>
           </div>
 
-          <div className="text-[11px] text-slate-300 font-sans">
-            Catch: <strong className="text-emerald-400 font-mono">{trackedDecision?.feedback?.fishing_outcome || fishingCatch}</strong> • "{trackedDecision?.feedback?.comment || feedbackComment}"
+          <div className="text-xs text-slate-300">
+            Catch Outcome: <strong className="text-emerald-400">{trackedDecision?.feedback?.fishing_outcome || fishingCatch}</strong> • "{trackedDecision?.feedback?.comment || feedbackComment}"
           </div>
         </div>
       )}
@@ -596,10 +599,10 @@ export default function MarineSidePanel({
         <div className="fixed inset-0 z-[3000] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
           <form
             onSubmit={handleSubmitFeedback}
-            className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 space-y-3.5 shadow-2xl text-xs"
+            className="bg-slate-900 border border-slate-700 rounded-xl max-w-md w-full p-5 space-y-3.5 shadow-xl text-xs"
           >
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <h3 className="font-bold text-white text-sm">Post-Mission Feedback</h3>
+              <h3 className="font-semibold text-white text-sm">Post-Mission Feedback</h3>
               <button
                 type="button"
                 onClick={() => setShowFeedbackModal(false)}
@@ -618,7 +621,7 @@ export default function MarineSidePanel({
                 max="10.0"
                 value={actualWave}
                 onChange={(e) => setActualWave(parseFloat(e.target.value))}
-                className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono outline-none"
+                className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500"
                 required
               />
             </div>
@@ -632,7 +635,7 @@ export default function MarineSidePanel({
                 max="100.0"
                 value={actualWind}
                 onChange={(e) => setActualWind(parseFloat(e.target.value))}
-                className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono outline-none"
+                className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500"
                 required
               />
             </div>
@@ -642,11 +645,11 @@ export default function MarineSidePanel({
               <select
                 value={fishingCatch}
                 onChange={(e) => setFishingCatch(e.target.value as any)}
-                className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono outline-none"
+                className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500"
               >
-                <option value="Good">🟢 Good Catch</option>
-                <option value="Average">🟡 Average Catch</option>
-                <option value="Poor">🔴 Poor Catch</option>
+                <option value="Good">Good Catch</option>
+                <option value="Average">Average Catch</option>
+                <option value="Poor">Poor Catch</option>
               </select>
             </div>
 
@@ -656,7 +659,7 @@ export default function MarineSidePanel({
                 type="text"
                 value={feedbackComment}
                 onChange={(e) => setFeedbackComment(e.target.value)}
-                className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-white outline-none"
+                className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500"
               />
             </div>
 
@@ -664,26 +667,26 @@ export default function MarineSidePanel({
               <button
                 type="button"
                 onClick={() => setShowFeedbackModal(false)}
-                className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl"
+                className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={submittingFeedback}
-                className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl font-mono"
+                className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded-lg"
               >
-                {submittingFeedback ? 'Submitting...' : 'Save Feedback'}
+                {submittingFeedback ? 'Saving...' : 'Save Feedback'}
               </button>
             </div>
           </form>
         </div>
       )}
 
-      {/* Footer Info */}
-      <div className="pt-2 border-t border-slate-800/80 text-[10px] text-slate-500 font-mono flex justify-between">
-        <span>Deterministic Rule Authority</span>
-        <span>Living Decision Protocol</span>
+      {/* Footer System Info */}
+      <div className="pt-2 border-t border-slate-800/80 text-[11px] text-slate-500 flex justify-between font-normal">
+        <span>Deterministic Rule Engine</span>
+        <span>Living Decision Registry</span>
       </div>
 
     </div>
