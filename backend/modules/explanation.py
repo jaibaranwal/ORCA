@@ -137,3 +137,65 @@ async def explain_decision(
         return gemini_exp
 
     return generate_deterministic_explanation(payload, language=language, context_type=context_type)
+
+async def answer_conversational_query(
+    query: str, 
+    language: str = "en"
+) -> str:
+    """
+    Answers general informational, maritime safety, or conversational questions.
+    Uses Gemini when key is present, with rich deterministic marine knowledge fallback.
+    """
+    api_key = os.getenv("GEMINI_API_KEY", "")
+    model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+    is_hindi = language in ["hi", "hinglish"]
+
+    if api_key:
+        api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+        system_p = (
+            "You are ORCA (Oceanic Resource & Marine Decision Intelligence), an AI assistant for Indian fishermen and coastal operators. "
+            "Answer the user's question directly, clearly, and factually in 2 to 3 sentences. "
+            f"Language: {'Hindi/Hinglish' if is_hindi else 'English'}. Be polite, factual, and helpful."
+        )
+        payload = {
+            "contents": [
+                {"parts": [{"text": f"{system_p}\n\nUser Question: {query}"}]}
+            ],
+            "generationConfig": {"temperature": 0.3, "maxOutputTokens": 200}
+        }
+        try:
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                resp = await client.post(api_url, json=payload)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+        except Exception as e:
+            logger.warning(f"Conversational Gemini query failed: {e}")
+
+    # Rich deterministic maritime knowledge fallback
+    q_low = query.lower()
+    if "pfz" in q_low:
+        return (
+            "PFZ (Potential Fishing Zone) INCOIS dwara satellite data (SST aur Chlorophyll) se identify kiya gaya ocean area hai jahan machli milne ki sambhavna sabse adhik hoti hai."
+            if is_hindi else
+            "PFZ (Potential Fishing Zone) refers to high-productivity ocean zones identified via satellite data (Sea Surface Temperature and Chlorophyll) where fish aggregation is highest."
+        )
+    elif "wave" in q_low or "lahar" in q_low:
+        return (
+            "ORCA mein 1.5m tak ki wave height Safe (GO), 1.5m-2.5m Caution, aur 2.5m se upar Unsafe (WAIT) mani jaati hai."
+            if is_hindi else
+            "ORCA considers wave heights up to 1.5m safe (GO), 1.5m to 2.5m moderate (CAUTION), and above 2.5m hazardous (WAIT) for small fishing craft."
+        )
+    elif "orca" in q_low or "who" in q_low or "kya hai" in q_low:
+        return (
+            "ORCA ek Living Marine Decision System hai jo aapko safe fishing zones recommend karta hai aur conditions badalne par aapke decision ko monitor aur repair karta hai."
+            if is_hindi else
+            "ORCA is a Living Marine Decision System that provides safe fishing recommendations, tracks your decision in real-time, and generates verified alternatives when sea conditions change."
+        )
+    else:
+        return (
+            "Aap ORCA se pooch sakte hain ki kal subah kahan fishing karni chahiye, kisi specific zone ki safety check kar sakte hain, ya map par sector click karke live weather dekh sakte hain."
+            if is_hindi else
+            "You can ask ORCA where to fish tomorrow, check if a specific sector is safe, or select any zone on the map to evaluate real-time weather and safety."
+        )
+

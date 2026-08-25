@@ -34,7 +34,7 @@ from modules.decision_store import (
 from modules.data_collection import collect_marine_conditions, calculate_haversine_distance
 from modules.decision_engine import evaluate_decision
 from modules.query_understanding import understand_user_query
-from modules.explanation import explain_decision
+from modules.explanation import explain_decision, answer_conversational_query
 from modules.decision_watch import check_decision_conditions
 from modules.decision_repair import generate_repair_options, apply_repair_selection
 from modules.decision_feedback import record_mission_feedback, get_mission_feedback
@@ -148,21 +148,14 @@ async def process_natural_language_query(req: QueryRequest):
     all_zones = pfz_adapter.get_all_zones()
     zone_ids = [z["zone_id"] for z in all_zones]
 
-    if intent.get("intent") == "greeting":
-        is_hindi = lang in ["hi", "hinglish"]
-        greeting_text = (
-            "Namaste Raju! Main ORCA Marine Intelligence assistant hoon. "
-            "Aap pooch sakte hain: 'Kal subah fishing ke liye kahan jaana chahiye?', 'Is Zone B safe tomorrow?', ya live map se zone select karke evaluation dekh sakte hain."
-            if is_hindi else
-            "Hello Raju! I am ORCA — your marine decision intelligence assistant. "
-            "Ask me: 'Where should I go fishing tomorrow morning?', 'Is Zone B safe tomorrow?', or select any sector on the map to evaluate safety."
-        )
+    if intent.get("intent") in ["greeting", "general_query"]:
+        explanation_text = await answer_conversational_query(req.message, language=lang)
         return QueryResponse(
             message=req.message,
             intent=intent,
             decision=None,
             all_evaluations=[],
-            explanation=greeting_text,
+            explanation=explanation_text,
             language=lang,
             suggested_action="ask_question"
         )

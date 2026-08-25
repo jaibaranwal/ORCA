@@ -106,6 +106,10 @@ def parse_user_query_deterministic(query: str, user_role: str = "fisherman") -> 
         intent = "greeting"
         request_type = "general"
         needs_tracking = False
+    elif re.search(r'\b(what is|who are|kya hai|kaise kaam|how does|help|madad|bataiye|explain|batao|rules|niyam|tips)\b', q_lower) and not zone_id and not re.search(r'\b(jaana|chahiye|where to|kahan)\b', q_lower):
+        intent = "general_query"
+        request_type = "general"
+        needs_tracking = False
     elif re.search(r'\b(kab|when|suitable|theek hoga)\b', q_lower):
         intent = "zone_suitability"
         request_type = "monitor_request"
