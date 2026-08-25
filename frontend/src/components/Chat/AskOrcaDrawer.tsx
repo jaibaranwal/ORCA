@@ -34,7 +34,7 @@ export default function AskOrcaDrawer({
       id: 'welcome-001',
       sender: 'orca',
       text: 'Namaste Raju! I am ORCA, your marine decision support assistant. You can ask in English, Hindi, or Hinglish where to fish or check live safety conditions.',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: '06:00 AM',
     },
   ]);
   const [input, setInput] = useState('');
@@ -187,7 +187,7 @@ export default function AskOrcaDrawer({
                 </div>
               )}
             </div>
-            <span className="text-[9px] text-slate-500 mt-1 px-1 font-mono">{m.timestamp}</span>
+            <span className="text-[9px] text-slate-500 mt-1 px-1 font-mono" suppressHydrationWarning>{m.timestamp}</span>
           </div>
         ))}
 

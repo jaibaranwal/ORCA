@@ -206,7 +206,7 @@ export default function DecisionDetailsModal({
           <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex flex-wrap items-center justify-between gap-3">
             <div>
               <span className="text-xs font-bold text-white block">Mission Controls</span>
-              <span className="text-[11px] text-slate-400 font-mono">
+              <span className="text-[11px] text-slate-400 font-mono" suppressHydrationWarning>
                 Verified: {new Date(decision.last_checked_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
@@ -574,7 +574,7 @@ export default function DecisionDetailsModal({
 
               <div className="text-[10px] text-slate-400 pt-1 font-mono flex justify-between">
                 <span>Target: {decision.original_conditions.location.name || decision.mission.zone_name}</span>
-                <span>Recorded: {new Date(decision.created_at).toLocaleTimeString()}</span>
+                <span suppressHydrationWarning>Recorded: {new Date(decision.created_at).toLocaleTimeString()}</span>
               </div>
             </div>
 
@@ -608,7 +608,7 @@ export default function DecisionDetailsModal({
                 </div>
                 <div className="p-1.5 bg-slate-900 rounded">
                   <span className="text-[10px] text-slate-400 block">Departure</span>
-                  <span className="text-[10px] text-cyan-400 font-mono">
+                  <span className="text-[10px] text-cyan-400 font-mono" suppressHydrationWarning>
                     {new Date(decision.mission.planned_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
@@ -616,7 +616,7 @@ export default function DecisionDetailsModal({
 
               <div className="text-[10px] text-slate-400 pt-1 font-mono flex justify-between">
                 <span>Sector: {decision.mission.zone_name}</span>
-                <span>Verified: {new Date(decision.last_checked_at).toLocaleTimeString()}</span>
+                <span suppressHydrationWarning>Verified: {new Date(decision.last_checked_at).toLocaleTimeString()}</span>
               </div>
             </div>
 
@@ -645,7 +645,7 @@ export default function DecisionDetailsModal({
                 >
                   <div>
                     <span className="font-semibold block">{h.summary}</span>
-                    <span className="text-[10px] opacity-75 font-mono">
+                    <span className="text-[10px] opacity-75 font-mono" suppressHydrationWarning>
                       {new Date(h.checked_at).toLocaleTimeString()} • Verdict: {h.new_status}
                     </span>
                   </div>

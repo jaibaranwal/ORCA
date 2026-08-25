@@ -1,0 +1,154 @@
+{
+  "dataset": "NOAA CoastWatch ERDDAP Daily SST (0.01 deg)",
+  "region": "Arabian Sea - Kerala Coastal Corridor",
+  "bounding_box": {
+    "lat_min": 8.5,
+    "lat_max": 11.5,
+    "lon_min": 75.0,
+    "lon_max": 76.8
+  },
+  "timestamp": "2026-08-25T10:27:09Z",
+  "data_source": "LIVE NOAA/MARINE",
+  "thermal_fronts": [
+    {
+      "front_id": "tf_zone_b",
+      "zone_id": "zone_b",
+      "description": "Strong thermal front (0.8\u00b0C/km gradient) separating 27.2\u00b0C coastal upwelling from 28.5\u00b0C open sea water.",
+      "sst_mean_celsius": 27.8,
+      "gradient_c_per_km": 0.82,
+      "productivity_index": 88
+    },
+    {
+      "front_id": "tf_zone_c",
+      "zone_id": "zone_c",
+      "description": "Deep water cold core eddy with prominent 27.0\u00b0C thermal boundary.",
+      "sst_mean_celsius": 27.2,
+      "gradient_c_per_km": 0.95,
+      "productivity_index": 92
+    },
+    {
+      "front_id": "tf_zone_a",
+      "zone_id": "zone_a",
+      "description": "Mild nearshore thermal gradient in shallow waters.",
+      "sst_mean_celsius": 28.6,
+      "gradient_c_per_km": 0.35,
+      "productivity_index": 68
+    }
+  ],
+  "grid_points": [
+    {
+      "lat": 9.65,
+      "lon": 76.05,
+      "sst": 26.8,
+      "zone_id": "zone_a"
+    },
+    {
+      "lat": 9.75,
+      "lon": 76.15,
+      "sst": 26.7,
+      "zone_id": "zone_a"
+    },
+    {
+      "lat": 9.85,
+      "lon": 76.1,
+      "sst": 26.7,
+      "zone_id": "zone_a"
+    },
+    {
+      "lat": 9.7,
+      "lon": 75.95,
+      "sst": 27.0,
+      "zone_id": "zone_a"
+    },
+    {
+      "lat": 9.95,
+      "lon": 75.85,
+      "sst": 27.1,
+      "zone_id": "zone_b"
+    },
+    {
+      "lat": 10.05,
+      "lon": 75.95,
+      "sst": 27.7,
+      "zone_id": "zone_b"
+    },
+    {
+      "lat": 10.15,
+      "lon": 75.9,
+      "sst": 27.8,
+      "zone_id": "zone_b"
+    },
+    {
+      "lat": 10.1,
+      "lon": 76.05,
+      "sst": 28.1,
+      "zone_id": "zone_b"
+    },
+    {
+      "lat": 9.9,
+      "lon": 75.75,
+      "sst": 27.6,
+      "zone_id": "zone_b"
+    },
+    {
+      "lat": 10.35,
+      "lon": 75.65,
+      "sst": 27.3,
+      "zone_id": "zone_c"
+    },
+    {
+      "lat": 10.45,
+      "lon": 75.75,
+      "sst": 27.1,
+      "zone_id": "zone_c"
+    },
+    {
+      "lat": 10.55,
+      "lon": 75.7,
+      "sst": 27.2,
+      "zone_id": "zone_c"
+    },
+    {
+      "lat": 10.65,
+      "lon": 75.8,
+      "sst": 27.4,
+      "zone_id": "zone_c"
+    },
+    {
+      "lat": 10.3,
+      "lon": 75.55,
+      "sst": 27.0,
+      "zone_id": "zone_c"
+    },
+    {
+      "lat": 9.2,
+      "lon": 76.2,
+      "sst": 28.8,
+      "zone_id": null
+    },
+    {
+      "lat": 9.4,
+      "lon": 76.0,
+      "sst": 28.6,
+      "zone_id": null
+    },
+    {
+      "lat": 10.8,
+      "lon": 75.6,
+      "sst": 27.5,
+      "zone_id": null
+    },
+    {
+      "lat": 11.1,
+      "lon": 75.5,
+      "sst": 27.8,
+      "zone_id": null
+    },
+    {
+      "lat": 8.9,
+      "lon": 76.4,
+      "sst": 28.9,
+      "zone_id": null
+    }
+  ]
+}

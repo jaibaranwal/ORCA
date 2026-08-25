@@ -40,6 +40,7 @@ from modules.decision_repair import generate_repair_options, apply_repair_select
 from modules.decision_feedback import record_mission_feedback, get_mission_feedback
 from adapters.pfz_adapter import PFZAdapter
 from adapters.boundary_adapter import BoundaryAdapter
+from adapters.sst_adapter import sst_adapter
 
 router = APIRouter(prefix="/api")
 
@@ -51,9 +52,9 @@ async def health_check():
     return HealthResponse(
         status="healthy",
         service="ORCA Marine Decision Support Engine",
-        version="1.0.0-phase7",
+        version="1.0.0-phase8",
         timestamp=datetime.utcnow().isoformat() + "Z",
-        phase="Phase 7 - Living Feedback & Outcome Capture",
+        phase="Phase 8 - SST NOAA ERDDAP Layer & Geocoding Active",
         details={
             "database": "SQLite Decision Store Active",
             "decision_engine": "Deterministic Rules Active (GO/CAUTION/WAIT)",
@@ -62,6 +63,7 @@ async def health_check():
             "decision_watch": "Living Decision Watch & Meaningful Change Detector Active",
             "repair_engine": "Deterministic Repair & Wait Strategy Generator Active",
             "feedback_engine": "Prediction vs Actual Comparison & Outcome Capture Active",
+            "sst_adapter": "NOAA ERDDAP + Thermal Front Detector Active",
             "environment": os.getenv("DEMO_MODE", "true")
         }
     )
@@ -348,3 +350,74 @@ async def set_gemini_key(payload: Dict[str, Any] = Body(...)):
     else:
         os.environ["GEMINI_API_KEY"] = ""
         return {"status": "success", "message": "Gemini API key cleared. Using deterministic fallback."}
+
+@router.get("/sst")
+async def get_sea_surface_temperature(force_refresh: bool = Query(False)):
+    """
+    Returns Sea Surface Temperature grid and thermal front detections
+    from NOAA CoastWatch ERDDAP with 1-hour cache and demo fallback.
+    """
+    return sst_adapter.get_sst_grid(force_refresh=force_refresh)
+
+CURATED_COASTAL_PORTS = [
+    {"name": "Kochi Port, Kerala", "lat": 9.966, "lon": 76.267, "state": "Kerala", "type": "Major Port"},
+    {"name": "Munambam Harbour, Kerala", "lat": 10.182, "lon": 76.175, "state": "Kerala", "type": "Fishing Harbour"},
+    {"name": "Beypore Port, Kozhikode", "lat": 11.164, "lon": 75.808, "state": "Kerala", "type": "Fishing Harbour"},
+    {"name": "Neendakara Port, Kollam", "lat": 8.937, "lon": 76.536, "state": "Kerala", "type": "Fishing Harbour"},
+    {"name": "Vizhinjam Port, Thiruvananthapuram", "lat": 8.375, "lon": 76.992, "state": "Kerala", "type": "Deepwater Port"},
+    {"name": "Mangalore Old Port, Karnataka", "lat": 12.853, "lon": 74.836, "state": "Karnataka", "type": "Fishing Harbour"},
+    {"name": "Malpe Fishing Port, Udupi", "lat": 13.351, "lon": 74.704, "state": "Karnataka", "type": "Fishing Harbour"},
+    {"name": "Mormugao Port, Goa", "lat": 15.416, "lon": 73.799, "state": "Goa", "type": "Major Port"},
+    {"name": "Sassoon Docks, Mumbai", "lat": 18.915, "lon": 72.825, "state": "Maharashtra", "type": "Major Fishing Docks"},
+    {"name": "Kanyakumari Harbour, Tamil Nadu", "lat": 8.082, "lon": 77.553, "state": "Tamil Nadu", "type": "Fishing Harbour"},
+    {"name": "Tuticorin Port, Tamil Nadu", "lat": 8.756, "lon": 78.188, "state": "Tamil Nadu", "type": "Major Port"}
+]
+
+@router.get("/geocode")
+async def geocode_location(q: str = Query(..., min_length=1)):
+    """
+    Nominatim Geocoding Endpoint for coastal ports and locations.
+    Checks curated Indian fishing ports first, then falls back to Nominatim with 3s timeout.
+    """
+    query_clean = q.lower().strip()
+    
+    # 1. Check curated ports
+    matched = [
+        p for p in CURATED_COASTAL_PORTS
+        if query_clean in p["name"].lower() or query_clean in p.get("state", "").lower()
+    ]
+    if matched:
+        return {"query": q, "source": "CURATED_PORTS", "results": matched}
+
+    # 2. Try Nominatim live query
+    try:
+        import urllib.parse
+        import urllib.request
+        encoded_q = urllib.parse.quote(f"{q}, India")
+        url = f"https://nominatim.openstreetmap.org/search?q={encoded_q}&format=json&limit=5&countrycodes=in"
+        req = urllib.request.Request(url, headers={"User-Agent": "ORCA-Marine-Decision-Support/1.0 (sih2026@orca.internal)"})
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            if resp.status == 200:
+                raw_results = json.loads(resp.read().decode("utf-8"))
+                formatted = [
+                    {
+                        "name": r.get("display_name", q),
+                        "lat": float(r.get("lat")),
+                        "lon": float(r.get("lon")),
+                        "type": r.get("type", "coastal_location"),
+                        "state": "India"
+                    }
+                    for r in raw_results if "lat" in r and "lon" in r
+                ]
+                if formatted:
+                    return {"query": q, "source": "NOMINATIM_LIVE", "results": formatted}
+    except Exception:
+        pass
+
+    # 3. Fallback: closest default port
+    return {
+        "query": q,
+        "source": "FALLBACK_PORTS",
+        "results": CURATED_COASTAL_PORTS[:4]
+    }
+

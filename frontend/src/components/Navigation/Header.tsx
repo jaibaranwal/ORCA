@@ -1,14 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { GeoLocation } from '@/lib/types';
-import { fetchConfigStatus, saveGeminiKey } from '@/lib/api';
+import { GeoLocation, GeocodeResult } from '@/lib/types';
+import { fetchConfigStatus, saveGeminiKey, searchLocations } from '@/lib/api';
 
 export const DEMO_PORTS: GeoLocation[] = [
   { name: 'Kochi Port, Kerala', lat: 9.966, lon: 76.267 },
   { name: 'Munambam Harbour, Kerala', lat: 10.182, lon: 76.175 },
   { name: 'Beypore Port, Kozhikode', lat: 11.164, lon: 75.808 },
   { name: 'Neendakara Port, Kollam', lat: 8.937, lon: 76.536 },
+  { name: 'Vizhinjam Port, Thiruvananthapuram', lat: 8.375, lon: 76.992 },
+  { name: 'Mangalore Old Port, Karnataka', lat: 12.853, lon: 74.836 },
+  { name: 'Mormugao Port, Goa', lat: 15.416, lon: 73.799 },
 ];
 
 export type NavTabType = 'dashboard' | 'map' | 'decision' | 'monitor' | 'alerts' | 'chat' | 'feedback';
@@ -35,11 +38,29 @@ export default function Header({
   onResetDemo,
 }: HeaderProps) {
   const [showKeyModal, setShowKeyModal] = useState(false);
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<GeocodeResult[]>([]);
+  const [searching, setSearching] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [modelSelect, setModelSelect] = useState('gemini-1.5-flash');
   const [geminiConfigured, setGeminiConfigured] = useState(false);
   const [savingKey, setSavingKey] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
+
+  const handleSearchPort = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    setSearching(true);
+    try {
+      const res = await searchLocations(searchQuery);
+      setSearchResults(res.results || []);
+    } catch (err) {
+      console.warn('Geocoding search failed:', err);
+    } finally {
+      setSearching(false);
+    }
+  };
 
   useEffect(() => {
     fetchConfigStatus()
@@ -140,7 +161,7 @@ export default function Header({
                 const found = DEMO_PORTS.find((p) => p.name === e.target.value);
                 if (found) onSelectOrigin(found);
               }}
-              className="bg-transparent text-white font-medium text-xs outline-none cursor-pointer"
+              className="bg-transparent text-white font-medium text-xs outline-none cursor-pointer max-w-[130px] truncate"
             >
               {DEMO_PORTS.map((p) => (
                 <option key={p.name || 'port'} value={p.name || ''} className="bg-slate-900 text-white">
@@ -148,6 +169,13 @@ export default function Header({
                 </option>
               ))}
             </select>
+            <button
+              onClick={() => setShowSearchModal(true)}
+              className="text-[11px] text-slate-400 hover:text-cyan-300 ml-1 p-0.5 hover:bg-slate-700 rounded transition-colors"
+              title="Search Coastal Port via Nominatim Geocoding"
+            >
+              🔍
+            </button>
           </div>
 
           {/* Gemini AI Status Pill */}
@@ -183,6 +211,86 @@ export default function Header({
           </button>
         </div>
       </header>
+
+      {/* Coastal Port & Harbor Geocoding Modal */}
+      {showSearchModal && (
+        <div className="fixed inset-0 z-[4000] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-lg w-full p-5 space-y-3.5 shadow-2xl text-xs font-sans">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <div>
+                <h3 className="font-semibold text-white text-sm flex items-center gap-1.5">
+                  <span>⚓</span> Coastal Port & Location Search (Nominatim Geocoding)
+                </h3>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Select your departure harbour across the Indian coastline to update route calculations
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSearchModal(false)}
+                className="text-slate-400 hover:text-white text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSearchPort} className="flex items-center gap-2">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="e.g. Mangalore, Vizhinjam, Goa, Tuticorin, Beypore..."
+                className="flex-1 px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-white text-xs outline-none focus:border-cyan-400"
+              />
+              <button
+                type="submit"
+                disabled={searching || !searchQuery.trim()}
+                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-medium rounded-lg text-xs transition-colors shrink-0"
+              >
+                {searching ? 'Searching...' : 'Search'}
+              </button>
+            </form>
+
+            <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+              <span className="text-[10px] text-slate-400 font-mono uppercase font-bold block">
+                {searchResults.length > 0 ? 'Search Results:' : 'Curated Indian Fishing Harbours:'}
+              </span>
+              {(searchResults.length > 0 ? searchResults : DEMO_PORTS).map((p, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    onSelectOrigin({ name: p.name, lat: p.lat, lon: p.lon });
+                    setShowSearchModal(false);
+                  }}
+                  className="w-full text-left p-2.5 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/60 rounded-lg transition-all flex items-center justify-between group"
+                >
+                  <div>
+                    <strong className="text-white text-xs block group-hover:text-cyan-300 transition-colors">
+                      {p.name}
+                    </strong>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      {p.lat.toFixed(3)}°N, {p.lon.toFixed(3)}°E
+                    </span>
+                  </div>
+                  <span className="text-[11px] px-2 py-0.5 bg-slate-800 group-hover:bg-cyan-600 group-hover:text-white rounded text-slate-300 font-mono transition-colors">
+                    Select Base
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setShowSearchModal(false)}
+                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Gemini Key Settings Modal */}
       {showKeyModal && (

@@ -121,7 +121,7 @@ export default function MissionRegistry({
                         {isCompleted ? '✓ COMPLETED' : isAlert ? '⚠️ ALERT' : isRepaired ? '✓ REPAIRED' : dec.lifecycle_status}
                       </span>
                     </div>
-                    <span className="text-[10px] text-slate-500 font-mono">
+                    <span className="text-[10px] text-slate-500 font-mono" suppressHydrationWarning>
                       {new Date(dec.last_checked_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>

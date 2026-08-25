@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, GeoJSON, Circle, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { ZoneInfo, BoundariesGeoJSON, DecisionResult, GeoLocation } from '@/lib/types';
+import { ZoneInfo, BoundariesGeoJSON, DecisionResult, GeoLocation, SSTGridResponse } from '@/lib/types';
+import { fetchSSTGrid } from '@/lib/api';
 
 // Map center adjuster
 function ChangeView({ center, zoom }: { center: [number, number]; zoom: number }) {
@@ -37,12 +38,20 @@ export default function OrcaMapInner({
     weather: true,
     waves: true,
     pfz: true,
+    sst: true,
     boundaries: true,
     restricted: true,
     risk: true,
   });
 
   const [showLayerMenu, setShowLayerMenu] = useState(false);
+  const [sstData, setSstData] = useState<SSTGridResponse | null>(null);
+
+  useEffect(() => {
+    fetchSSTGrid()
+      .then((data) => setSstData(data))
+      .catch((err) => console.warn('Could not load SST grid:', err));
+  }, []);
 
   // Coordinates
   const originCoord: [number, number] = [userOrigin.lat, userOrigin.lon];
@@ -160,6 +169,19 @@ export default function OrcaMapInner({
 
             <label className="flex items-center justify-between cursor-pointer hover:text-white">
               <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                <span>🌡️ NOAA SST & Thermal Fronts</span>
+              </span>
+              <input
+                type="checkbox"
+                checked={layers.sst}
+                onChange={(e) => setLayers({ ...layers, sst: e.target.checked })}
+                className="rounded accent-blue-600"
+              />
+            </label>
+
+            <label className="flex items-center justify-between cursor-pointer hover:text-white">
+              <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-rose-500" />
                 <span>🚫 Restricted Corridors</span>
               </span>
@@ -201,7 +223,7 @@ export default function OrcaMapInner({
       </div>
 
       {/* Floating Compass / Scale Legend */}
-      <div className="absolute bottom-3 left-3 z-[1000] bg-slate-900/90 border border-slate-800/90 backdrop-blur px-2.5 py-1.5 rounded-lg text-[10px] text-slate-300 font-mono flex items-center gap-3 shadow-md">
+      <div className="absolute bottom-3 left-3 z-[1000] bg-slate-900/90 border border-slate-800/90 backdrop-blur px-2.5 py-1.5 rounded-lg text-[10px] text-slate-300 font-mono flex items-center gap-2.5 shadow-md flex-wrap max-w-lg">
         <span className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-emerald-500" /> GO Sector
         </span>
@@ -211,6 +233,11 @@ export default function OrcaMapInner({
         <span className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-rose-500" /> Restricted / Wait
         </span>
+        {layers.sst && (
+          <span className="border-l border-slate-700 pl-2 flex items-center gap-1 text-cyan-300">
+            <span className="w-2 h-2 rounded-full bg-cyan-400" /> NOAA SST Thermal Front (27.0-27.8°C)
+          </span>
+        )}
       </div>
 
       <MapContainer
@@ -353,6 +380,41 @@ export default function OrcaMapInner({
                 </Marker>
               )}
             </div>
+          );
+        })}
+
+        {/* 7. NOAA SST Thermal Front & Temperature Grid Layer */}
+        {layers.sst && sstData?.grid_points && sstData.grid_points.map((pt, idx) => {
+          let color = '#06b6d4'; // cold upwelling (<27.3°C)
+          if (pt.sst > 28.5) color = '#f43f5e'; // warm coastal (>28.5°C)
+          else if (pt.sst >= 28.0) color = '#f59e0b'; // mild (28.0-28.5°C)
+          else if (pt.sst >= 27.4) color = '#10b981'; // optimal thermal front (27.4-27.9°C)
+
+          return (
+            <Circle
+              key={`sst_pt_${idx}`}
+              center={[pt.lat, pt.lon]}
+              radius={8500}
+              pathOptions={{
+                color: color,
+                fillColor: color,
+                fillOpacity: 0.18,
+                weight: 1.2,
+                dashArray: '3, 4',
+              }}
+            >
+              <Popup>
+                <div className="text-xs p-1 font-sans text-slate-800">
+                  <strong className="block font-bold text-blue-900">🌡️ NOAA CoastWatch ERDDAP SST</strong>
+                  <div className="mt-1 space-y-0.5 text-[11px] text-slate-700">
+                    <div>Sea Surface Temp: <strong>{pt.sst}°C</strong></div>
+                    <div>Location: {pt.lat.toFixed(2)}°N, {pt.lon.toFixed(2)}°E</div>
+                    {pt.zone_id && <div>Covering: <strong className="text-blue-700">{pt.zone_id.toUpperCase()}</strong></div>}
+                    <div className="text-[10px] text-slate-500 pt-0.5">Source: {sstData.data_source}</div>
+                  </div>
+                </div>
+              </Popup>
+            </Circle>
           );
         })}
       </MapContainer>

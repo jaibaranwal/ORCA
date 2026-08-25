@@ -184,3 +184,16 @@ export async function saveGeminiKey(apiKey: string, model: string = 'gemini-1.5-
   return res.json();
 }
 
+export async function fetchSSTGrid(forceRefresh: boolean = false): Promise<import('./types').SSTGridResponse> {
+  const res = await fetch(`${API_BASE_URL}/sst?force_refresh=${forceRefresh}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch SST data: ${res.status}`);
+  return res.json();
+}
+
+export async function searchLocations(query: string): Promise<import('./types').GeocodeResponse> {
+  const res = await fetch(`${API_BASE_URL}/geocode?q=${encodeURIComponent(query)}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Geocoding failed: ${res.status}`);
+  return res.json();
+}
+
+

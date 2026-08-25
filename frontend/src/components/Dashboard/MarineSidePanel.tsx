@@ -79,7 +79,7 @@ export default function MarineSidePanel({
       id: 'welcome',
       sender: 'orca',
       text: 'Namaste! I am ORCA, your Marine Decision Support Assistant. I evaluate real-time ocean conditions, calculate safety and PFZ potential, track your mission, and detect environmental changes.',
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      time: '06:00 AM',
     }
   ]);
   const chatBottomRef = useRef<HTMLDivElement | null>(null);
@@ -716,7 +716,7 @@ export default function MarineSidePanel({
                   key={idx}
                   className="p-2 bg-slate-950 border border-slate-800 rounded-lg text-[11px] flex items-start gap-2"
                 >
-                  <span className="font-mono text-slate-400 text-[10px] mt-0.5 shrink-0">{item.time}</span>
+                  <span className="font-mono text-slate-400 text-[10px] mt-0.5 shrink-0" suppressHydrationWarning>{item.time}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <strong className="text-white text-xs truncate">{item.title}</strong>
@@ -971,7 +971,7 @@ export default function MarineSidePanel({
                   <span className={`text-[11px] font-bold ${item.sender === 'user' ? 'text-blue-400' : 'text-emerald-400'}`}>
                     {item.sender === 'user' ? 'You' : 'ORCA Assistant'}
                   </span>
-                  <span className="text-[10px] text-slate-500 font-mono">{item.time}</span>
+                  <span className="text-[10px] text-slate-500 font-mono" suppressHydrationWarning>{item.time}</span>
                 </div>
 
                 <div

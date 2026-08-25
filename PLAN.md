@@ -1642,89 +1642,90 @@ All errors return structured JSON:
 ## 27. Development Phases
 
 ### Phase 0 — Project Setup (Day 1)
-- [ ] GitHub repository created
-- [ ] Backend FastAPI + virtual environment setup
-- [ ] Frontend Next.js + TypeScript + Tailwind setup
-- [ ] .env.example created
-- [ ] SQLite with initial schema created
-- [ ] Gemini API key verified working
-- [ ] Open-Meteo verified returning data for Kochi coordinates
-- [ ] data/pfz_zones.geojson created with 3 zones
-- [ ] data/boundaries.geojson created with demo polygons
-- [ ] cache/weather_demo.json created with demo weather data
-- [ ] Both servers run locally
+- [x] GitHub repository created
+- [x] Backend FastAPI + virtual environment setup
+- [x] Frontend Next.js + TypeScript + Tailwind setup
+- [x] .env.example created
+- [x] SQLite with initial schema created
+- [x] Gemini API key verified working
+- [x] Open-Meteo verified returning data for Kochi coordinates
+- [x] data/pfz_zones.geojson created with 3 zones
+- [x] data/boundaries.geojson created with demo polygons
+- [x] cache/weather_demo.json created with demo weather data
+- [x] Both servers run locally
 
 ### Phase 1 — Map + Zones (Day 1-2)
-- [ ] Leaflet map renders centred on Kerala/Kochi coast
-- [ ] Zone A, B, C polygons displayed with labels
-- [ ] User location marker (hardcoded Kochi for demo)
-- [ ] Boundary polygons displayed in red
-- [ ] /api/zones endpoint returns zone GeoJSON data
+- [x] Leaflet map renders centred on Kerala/Kochi coast
+- [x] Zone A, B, C polygons displayed with labels
+- [x] User location marker (hardcoded Kochi for demo)
+- [x] Boundary polygons displayed in red
+- [x] /api/zones endpoint returns zone GeoJSON data
 
 ### Phase 2 — Data + Decision Engine (Day 2-3)
-- [ ] WeatherAdapter calls Open-Meteo and caches result
-- [ ] BoundaryAdapter loads GeoJSON, implements point-in-polygon
-- [ ] PFZAdapter returns demo PFZ scores for each zone
-- [ ] DistanceCalculator computes Haversine distance
-- [ ] decision_engine.py implements full scoring logic
-- [ ] /api/conditions returns MarineConditions
-- [ ] /api/evaluate returns DecisionResult
-- [ ] Thresholds loaded from config/thresholds.json
-- [ ] All fallback layers work (test by disconnecting internet)
+- [x] WeatherAdapter calls Open-Meteo and caches result
+- [x] BoundaryAdapter loads GeoJSON, implements point-in-polygon
+- [x] PFZAdapter returns demo PFZ scores for each zone
+- [x] DistanceCalculator computes Haversine distance
+- [x] decision_engine.py implements full scoring logic
+- [x] /api/conditions returns MarineConditions
+- [x] /api/evaluate returns DecisionResult
+- [x] Thresholds loaded from config/thresholds.json
+- [x] All fallback layers work (test by disconnecting internet)
 
 ### Phase 3 — Gemini Query + Dashboard UI (Day 3-4)
-- [ ] query_understanding.py sends message to Gemini, returns intent JSON
-- [ ] Chat panel renders in UI, accepts user input
-- [ ] User message triggers /api/query then /api/evaluate
-- [ ] Decision panel shows GO / CAUTION / WAIT with score
-- [ ] Condition values shown in panel
-- [ ] Gemini explanation text shown below verdict
-- [ ] Data source badge shows correctly
+- [x] query_understanding.py sends message to Gemini, returns intent JSON
+- [x] Chat panel renders in UI, accepts user input
+- [x] User message triggers /api/query then /api/evaluate
+- [x] Decision panel shows GO / CAUTION / WAIT with score
+- [x] Condition values shown in panel
+- [x] Gemini explanation text shown below verdict
+- [x] Data source badge shows correctly
 
 ### Phase 4 — Decision Object + Track (Day 4-5)
-- [ ] decision_store.py creates Decision Object in SQLite
-- [ ] POST /api/decisions endpoint works
-- [ ] TRACK DECISION button calls endpoint, shows WATCHING state
-- [ ] Decision Object stored with all required fields
-- [ ] GET /api/decisions/{id} returns full Decision Object
-- [ ] Map updates to show route from user to destination zone
+- [x] decision_store.py creates Decision Object in SQLite
+- [x] POST /api/decisions endpoint works
+- [x] TRACK DECISION button calls endpoint, shows WATCHING state
+- [x] Decision Object stored with all required fields
+- [x] GET /api/decisions/{id} returns full Decision Object
+- [x] Map updates to show route from user to destination zone
 
 ### Phase 5 — Watch + Change Detection (Day 5-6)
-- [ ] decision_watch.py loads Decision Object and fetches conditions
-- [ ] Threshold comparison logic works for wave height, wind
-- [ ] CHECK AGAIN button calls /api/decisions/{id}/watch
-- [ ] If not affected: WATCHING status confirmed, no alert
-- [ ] SIMULATE CONDITION CHANGE button works with wave override
-- [ ] If affected: Decision status changes to ALERT
-- [ ] ChangeEvent created and appended to change_history
+- [x] decision_watch.py loads Decision Object and fetches conditions
+- [x] Threshold comparison logic works for wave height, wind
+- [x] CHECK AGAIN button calls /api/decisions/{id}/watch
+- [x] If not affected: WATCHING status confirmed, no alert
+- [x] SIMULATE CONDITION CHANGE button works with wave override
+- [x] If affected: Decision status changes to ALERT
+- [x] ChangeEvent created and appended to change_history
 
 ### Phase 6 — Explain + Repair/Wait (Day 6-7)
-- [ ] explanation.py calls Gemini with ChangeEvent, returns explanation text
-- [ ] Alert panel shows in UI with explanation text
-- [ ] repair_engine.py generates and verifies candidates
-- [ ] Each repair option shows status badge and description
-- [ ] User can select a repair option
-- [ ] POST /api/decisions/{id}/select-repair updates Decision Object
-- [ ] Decision status changes to REPAIRED
-- [ ] WAIT option also works and updates status to WAITING
+- [x] explanation.py calls Gemini with ChangeEvent, returns explanation text
+- [x] Alert panel shows in UI with explanation text
+- [x] repair_engine.py generates and verifies candidates
+- [x] Each repair option shows status badge and description
+- [x] User can select a repair option
+- [x] POST /api/decisions/{id}/select-repair updates Decision Object
+- [x] Decision status changes to REPAIRED
+- [x] WAIT option also works and updates status to WAITING
 
 ### Phase 7 — Integration Test + Demo Polish (Day 7-8)
-- [ ] Full demo flow works end-to-end
-- [ ] Demo reset endpoint clears state cleanly
-- [ ] All fallbacks verified (test with API disabled)
-- [ ] Gemini fallback explanations work
-- [ ] UI shows correct badges for data source
-- [ ] Chat conversation history persists during session
-- [ ] Map auto-zooms to selected zone on decision
-- [ ] Tested on presentation laptop
+- [x] Full demo flow works end-to-end
+- [x] Demo reset endpoint clears state cleanly
+- [x] All fallbacks verified (test with API disabled)
+- [x] Gemini fallback explanations work
+- [x] UI shows correct badges for data source
+- [x] Chat conversation history persists during session
+- [x] Map auto-zooms to selected zone on decision
+- [x] Tested on presentation laptop
 
 ### Phase 8 [P1] — Feedback + SST + Polish (Day 8-10)
-- [ ] Feedback form for post-mission data
-- [ ] /api/decisions/{id}/feedback stores feedback
-- [ ] Predicted vs Actual display
-- [ ] SST adapter with NOAA ERDDAP + fallback
-- [ ] SST layer on map
-- [ ] Hindi/Hinglish query understanding tested
+- [x] Feedback form for post-mission data
+- [x] /api/decisions/{id}/feedback stores feedback
+- [x] Predicted vs Actual display
+- [x] SST adapter with NOAA ERDDAP + fallback
+- [x] SST layer on map
+- [x] Hindi/Hinglish query understanding tested
+- [x] Nominatim coastal location & port geocoding search
 
 ---
 

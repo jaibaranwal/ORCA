@@ -33,7 +33,7 @@ export default function AskOrcaModal({
       id: 'msg-welcome',
       sender: 'orca',
       text: 'Namaste Raju! I am ORCA — your marine decision intelligence assistant. Ask me where to fish tomorrow, check if a specific sector is safe, or inquire in Hindi, Hinglish, or English.',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: '06:00 AM',
     },
   ]);
   const [input, setInput] = useState('');
@@ -203,7 +203,7 @@ export default function AskOrcaModal({
                   </div>
                 )}
               </div>
-              <span className="text-[9px] text-slate-500 mt-1 px-1 font-mono">{m.timestamp}</span>
+              <span className="text-[9px] text-slate-500 mt-1 px-1 font-mono" suppressHydrationWarning>{m.timestamp}</span>
             </div>
           ))}
 

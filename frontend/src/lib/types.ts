@@ -299,3 +299,43 @@ export interface QueryResponse {
   language: string;
   suggested_action: string;
 }
+
+export interface SSTGridPoint {
+  lat: number;
+  lon: number;
+  sst: number;
+  zone_id: string | null;
+}
+
+export interface ThermalFront {
+  front_id: string;
+  zone_id: string;
+  description: string;
+  sst_mean_celsius: number;
+  gradient_c_per_km: number;
+  productivity_index?: number;
+}
+
+export interface SSTGridResponse {
+  dataset: string;
+  region: string;
+  timestamp: string;
+  data_source: string;
+  thermal_fronts: ThermalFront[];
+  grid_points: SSTGridPoint[];
+}
+
+export interface GeocodeResult {
+  name: string;
+  lat: number;
+  lon: number;
+  type?: string;
+  state?: string;
+}
+
+export interface GeocodeResponse {
+  query: string;
+  source: string;
+  results: GeocodeResult[];
+}
+

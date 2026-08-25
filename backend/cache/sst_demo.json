@@ -1,0 +1,62 @@
+{
+  "dataset": "NOAA CoastWatch ERDDAP Daily SST (0.01 deg)",
+  "region": "Arabian Sea - Kerala Coastal Corridor",
+  "bounding_box": {
+    "lat_min": 8.5,
+    "lat_max": 11.5,
+    "lon_min": 75.0,
+    "lon_max": 76.8
+  },
+  "timestamp": "2026-08-25T00:00:00Z",
+  "data_source": "DEMO DATA (NOAA ERDDAP Cache)",
+  "thermal_fronts": [
+    {
+      "front_id": "tf_zone_b",
+      "zone_id": "zone_b",
+      "description": "Strong thermal front (0.8°C/km gradient) separating 27.2°C coastal upwelling from 28.5°C open sea water.",
+      "sst_mean_celsius": 27.8,
+      "gradient_c_per_km": 0.82,
+      "productivity_index": 88
+    },
+    {
+      "front_id": "tf_zone_c",
+      "zone_id": "zone_c",
+      "description": "Deep water cold core eddy with prominent 27.0°C thermal boundary.",
+      "sst_mean_celsius": 27.2,
+      "gradient_c_per_km": 0.95,
+      "productivity_index": 92
+    },
+    {
+      "front_id": "tf_zone_a",
+      "zone_id": "zone_a",
+      "description": "Mild nearshore thermal gradient in shallow waters.",
+      "sst_mean_celsius": 28.6,
+      "gradient_c_per_km": 0.35,
+      "productivity_index": 68
+    }
+  ],
+  "grid_points": [
+    {"lat": 9.65, "lon": 76.05, "sst": 28.7, "zone_id": "zone_a"},
+    {"lat": 9.75, "lon": 76.15, "sst": 28.6, "zone_id": "zone_a"},
+    {"lat": 9.85, "lon": 76.10, "sst": 28.5, "zone_id": "zone_a"},
+    {"lat": 9.70, "lon": 75.95, "sst": 28.4, "zone_id": "zone_a"},
+
+    {"lat": 9.95, "lon": 75.85, "sst": 27.9, "zone_id": "zone_b"},
+    {"lat": 10.05, "lon": 75.95, "sst": 27.7, "zone_id": "zone_b"},
+    {"lat": 10.15, "lon": 75.90, "sst": 27.8, "zone_id": "zone_b"},
+    {"lat": 10.10, "lon": 76.05, "sst": 28.1, "zone_id": "zone_b"},
+    {"lat": 9.90, "lon": 75.75, "sst": 27.6, "zone_id": "zone_b"},
+
+    {"lat": 10.35, "lon": 75.65, "sst": 27.3, "zone_id": "zone_c"},
+    {"lat": 10.45, "lon": 75.75, "sst": 27.1, "zone_id": "zone_c"},
+    {"lat": 10.55, "lon": 75.70, "sst": 27.2, "zone_id": "zone_c"},
+    {"lat": 10.65, "lon": 75.80, "sst": 27.4, "zone_id": "zone_c"},
+    {"lat": 10.30, "lon": 75.55, "sst": 27.0, "zone_id": "zone_c"},
+
+    {"lat": 9.20, "lon": 76.20, "sst": 28.8, "zone_id": null},
+    {"lat": 9.40, "lon": 76.00, "sst": 28.6, "zone_id": null},
+    {"lat": 10.80, "lon": 75.60, "sst": 27.5, "zone_id": null},
+    {"lat": 11.10, "lon": 75.50, "sst": 27.8, "zone_id": null},
+    {"lat": 8.90, "lon": 76.40, "sst": 28.9, "zone_id": null}
+  ]
+}
