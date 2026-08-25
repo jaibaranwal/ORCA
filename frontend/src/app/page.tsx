@@ -19,7 +19,7 @@ import {
   DecisionObject 
 } from '@/lib/types';
 import OrcaMap from '@/components/Map/OrcaMap';
-import Header from '@/components/Navigation/Header';
+import Header, { NavTabType, DEMO_PORTS } from '@/components/Navigation/Header';
 import MarineSidePanel from '@/components/Dashboard/MarineSidePanel';
 
 export default function MarineDashboard() {
@@ -31,16 +31,13 @@ export default function MarineDashboard() {
   const [decision, setDecision] = useState<DecisionResult | null>(null);
   const [trackedDecisions, setTrackedDecisions] = useState<DecisionObject[]>([]);
   const [language, setLanguage] = useState<'en' | 'hi'>('en');
+  const [activeNavTab, setActiveNavTab] = useState<NavTabType>('dashboard');
   
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // User Base Location: Kochi Port, Kerala
-  const userOrigin: GeoLocation = {
-    lat: 9.966,
-    lon: 76.267,
-    name: 'Kochi Port',
-  };
+  // User Base Location (Configurable)
+  const [userOrigin, setUserOrigin] = useState<GeoLocation>(DEMO_PORTS[0]);
 
   const loadInitialData = async () => {
     setLoading(true);
@@ -96,6 +93,11 @@ export default function MarineDashboard() {
       await resetDemo();
       setDecision(null);
       setTrackedDecisions([]);
+      setActiveNavTab('dashboard');
+      if (zones.length > 0) {
+        const defaultZone = zones.find((z) => z.zone_id === 'zone_b') || zones[0];
+        setSelectedZone(defaultZone);
+      }
     } catch (err: any) {
       setError('Reset failed: ' + err.message);
     }
@@ -111,10 +113,14 @@ export default function MarineDashboard() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       
-      {/* Header */}
+      {/* Header with Navigation and Controls */}
       <Header
         userOrigin={userOrigin}
         language={language}
+        activeNavTab={activeNavTab}
+        alertCount={activeTrackedDecision?.lifecycle_status === 'ALERT' ? 1 : 0}
+        onSelectNavTab={(tab) => setActiveNavTab(tab)}
+        onSelectOrigin={(origin) => setUserOrigin(origin)}
         onToggleLanguage={() => setLanguage((prev) => (prev === 'en' ? 'hi' : 'en'))}
         onResetDemo={handleReset}
       />
@@ -134,7 +140,7 @@ export default function MarineDashboard() {
           <div className="lg:col-span-7 flex flex-col bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg p-2.5">
             <div className="flex items-center justify-between pb-2 px-1 text-xs text-slate-300 font-mono">
               <span className="font-bold flex items-center gap-1.5">
-                <span>🗺️</span> Arabian Sea Maritime Corridor (Kochi)
+                <span>🗺️</span> {userOrigin.name || 'Kochi Port'} Corridor & EEZ Waters
               </span>
               <span className="text-slate-400 text-[11px]">
                 {zones.length} Fishing Sectors • Boundary Layers Active
@@ -163,6 +169,8 @@ export default function MarineDashboard() {
               trackedDecision={activeTrackedDecision}
               userOrigin={userOrigin}
               language={language}
+              activeNavTab={activeNavTab}
+              onSelectNavTab={(tab) => setActiveNavTab(tab)}
               onSelectZone={handleSelectZone}
               onDecisionEvaluated={(res) => setDecision(res)}
               onDecisionTracked={handleDecisionTracked}
@@ -177,3 +185,4 @@ export default function MarineDashboard() {
     </div>
   );
 }
+
