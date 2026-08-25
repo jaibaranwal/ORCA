@@ -148,6 +148,25 @@ async def process_natural_language_query(req: QueryRequest):
     all_zones = pfz_adapter.get_all_zones()
     zone_ids = [z["zone_id"] for z in all_zones]
 
+    if intent.get("intent") == "greeting":
+        is_hindi = lang in ["hi", "hinglish"]
+        greeting_text = (
+            "Namaste Raju! Main ORCA Marine Intelligence assistant hoon. "
+            "Aap pooch sakte hain: 'Kal subah fishing ke liye kahan jaana chahiye?', 'Is Zone B safe tomorrow?', ya live map se zone select karke evaluation dekh sakte hain."
+            if is_hindi else
+            "Hello Raju! I am ORCA — your marine decision intelligence assistant. "
+            "Ask me: 'Where should I go fishing tomorrow morning?', 'Is Zone B safe tomorrow?', or select any sector on the map to evaluate safety."
+        )
+        return QueryResponse(
+            message=req.message,
+            intent=intent,
+            decision=None,
+            all_evaluations=[],
+            explanation=greeting_text,
+            language=lang,
+            suggested_action="ask_question"
+        )
+
     if target_zone_id and target_zone_id in zone_ids:
         decision = await _evaluate_single_zone(target_zone_id, origin)
         all_evals = [decision]

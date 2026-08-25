@@ -102,7 +102,11 @@ def parse_user_query_deterministic(query: str, user_role: str = "fisherman") -> 
             break
 
     # Identify Intent and Request Type
-    if re.search(r'\b(kab|when|suitable|theek hoga)\b', q_lower):
+    if re.search(r'^(hi|hello|hey|namaste|pranam|kese ho|kaise ho)\b', q_lower.strip()) and not re.search(r'\b(fish|fishing|zone|jaana|chahiye|safe|surakshit|machli|weather|hawa)\b', q_lower):
+        intent = "greeting"
+        request_type = "general"
+        needs_tracking = False
+    elif re.search(r'\b(kab|when|suitable|theek hoga)\b', q_lower):
         intent = "zone_suitability"
         request_type = "monitor_request"
         needs_tracking = True
