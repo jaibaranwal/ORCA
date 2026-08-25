@@ -167,3 +167,20 @@ export async function resetDemo(): Promise<{ status: string; message: string }> 
   if (!res.ok) throw new Error(`Failed to reset demo: ${res.status}`);
   return res.json();
 }
+
+export async function fetchConfigStatus(): Promise<{ gemini_configured: boolean; gemini_model: string }> {
+  const res = await fetch(`${API_BASE_URL}/config/status`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch config status: ${res.status}`);
+  return res.json();
+}
+
+export async function saveGeminiKey(apiKey: string, model: string = 'gemini-1.5-flash'): Promise<{ status: string; message: string }> {
+  const res = await fetch(`${API_BASE_URL}/config/gemini-key`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ api_key: apiKey, model }),
+  });
+  if (!res.ok) throw new Error(`Failed to save Gemini key: ${res.status}`);
+  return res.json();
+}
+

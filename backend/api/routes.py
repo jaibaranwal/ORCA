@@ -328,3 +328,30 @@ async def fetch_decision_feedback(decision_id: str = Path(...)):
 async def reset_demo():
     clear_decisions()
     return {"status": "success", "message": "Demo state reset successfully."}
+
+@router.get("/config/status")
+async def get_config_status():
+    key = os.getenv("GEMINI_API_KEY", "")
+    return {
+        "gemini_configured": bool(key and len(key) > 5),
+        "gemini_model": os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+    }
+
+@router.post("/config/gemini-key")
+async def set_gemini_key(payload: Dict[str, Any] = Body(...)):
+    new_key = payload.get("api_key", "").strip()
+    model = payload.get("model", "gemini-1.5-flash").strip()
+    if new_key:
+        os.environ["GEMINI_API_KEY"] = new_key
+        os.environ["GEMINI_MODEL"] = model
+        # Save to backend/.env
+        env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
+        try:
+            with open(env_path, "w") as f:
+                f.write(f"GEMINI_API_KEY={new_key}\nGEMINI_MODEL={model}\n")
+        except Exception as e:
+            logger.warning(f"Could not persist .env: {e}")
+        return {"status": "success", "message": "Gemini API key saved and activated successfully."}
+    else:
+        os.environ["GEMINI_API_KEY"] = ""
+        return {"status": "success", "message": "Gemini API key cleared. Using deterministic fallback."}

@@ -47,6 +47,9 @@ async def parse_user_query_gemini(query: str, user_role: str = "fisherman") -> O
     if not api_key:
         return None
 
+    model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+
     payload = {
         "contents": [
             {
@@ -62,17 +65,14 @@ async def parse_user_query_gemini(query: str, user_role: str = "fisherman") -> O
     }
 
     try:
-        async with httpx.AsyncClient(timeout=6.0) as client:
-            resp = await client.post(
-                f"{GEMINI_API_URL}?key={api_key}",
-                json=payload
-            )
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            resp = await client.post(api_url, json=payload)
             if resp.status_code == 200:
                 data = resp.json()
                 text = data["candidates"][0]["content"]["parts"][0]["text"]
-                # Clean up any potential markdown formatting
                 cleaned_text = re.sub(r"^```json\s*|\s*```$", "", text.strip(), flags=re.MULTILINE)
                 parsed = json.loads(cleaned_text)
+                parsed["parser"] = "gemini"
                 return parsed
             else:
                 logger.warning(f"Gemini API returned status {resp.status_code}: {resp.text}")
