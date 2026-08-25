@@ -1,15 +1,15 @@
 {
-  "timestamp": "2026-08-25T02:48:40.985800Z",
+  "timestamp": "2026-08-25T03:40:26.491053Z",
   "wave_height_m": 1.7,
   "wave_direction_deg": 252.0,
   "wave_period_s": 8.25,
   "current_speed_ms": 1.0,
-  "wind_speed_kmh": 19.8,
-  "wind_direction_deg": 269.0,
-  "weather_code": 80,
-  "visibility_km": 2.62,
-  "precipitation_mm": 0.4,
-  "lightning_alert": false,
+  "wind_speed_kmh": 17.9,
+  "wind_direction_deg": 275.0,
+  "weather_code": 95,
+  "visibility_km": 3.08,
+  "precipitation_mm": 0.9,
+  "lightning_alert": true,
   "cyclone_alert": false,
   "data_source": "live"
 }
