@@ -364,3 +364,28 @@ export interface ThresholdsUpdateResponse {
   config: ThresholdsConfig;
 }
 
+export interface AISVessel {
+  mmsi: string;
+  name: string;
+  registration?: string;
+  type: 'fishing' | 'patrol' | 'cargo' | 'research' | string;
+  subtype?: string;
+  lat: number;
+  lon: number;
+  speed_knots: number;
+  heading_deg: number;
+  status: string;
+  destination?: string;
+  base_port?: string;
+  length_m?: number;
+  draught_m?: number;
+}
+
+export interface AISResponse {
+  timestamp: string;
+  region: string;
+  data_source: string;
+  total_vessels: number;
+  vessels: AISVessel[];
+}
+

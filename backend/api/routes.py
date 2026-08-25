@@ -491,4 +491,20 @@ async def reset_thresholds_config():
         "config": DEFAULT_THRESHOLDS
     }
 
+# -------------------------------------------------------------
+# PHASE 10: SIMULATED AIS COASTAL VESSEL TRAFFIC LAYER
+# -------------------------------------------------------------
+
+from adapters.ais_adapter import ais_adapter
+
+@router.get("/ais")
+async def get_coastal_ais_vessels(
+    type: Optional[str] = Query(None, description="Filter by vessel type: fishing, patrol, cargo, research")
+):
+    """
+    Returns active coastal vessel traffic records from simulated AIS coastal network.
+    """
+    return ais_adapter.get_vessels(vessel_type=type)
+
+
 

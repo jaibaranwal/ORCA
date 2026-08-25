@@ -1735,6 +1735,15 @@ All errors return structured JSON:
 - [x] Quick-access SIH Judge Defense & Architecture cheat sheet modal (JudgeReferenceModal)
 - [x] End-to-end full demo suite verification (100% test pass rate)
 
+### Phase 10 — Simulated Coastal AIS Vessel Fleet & Marine Traffic GIS Layer
+- [x] AIS vessel fleet dataset with mechanized trawlers, gillnetters, Coast Guard interceptors, and research ships
+- [x] AIS adapter with type and bounding-box filtering (/api/adapters/ais_adapter.py)
+- [x] GET /api/ais endpoint supporting vessel category queries
+- [x] GIS map interactive layer toggle (🚢 AIS Vessel Fleet & Traffic)
+- [x] Directional vessel markers with heading orientation and type-coded icons
+- [x] Rich telemetry popups showing MMSI, speed, heading, fishing status, and port of origin
+- [x] Map scale legend updated with live fleet vessel counter
+
 ---
 
 ## 28. P0 / P1 / P2 Priorities

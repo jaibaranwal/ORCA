@@ -222,4 +222,11 @@ export async function resetThresholdsConfig(): Promise<import('./types').Thresho
   return res.json();
 }
 
+export async function fetchAISVessels(type?: string): Promise<import('./types').AISResponse> {
+  const url = type ? `${API_BASE_URL}/ais?type=${encodeURIComponent(type)}` : `${API_BASE_URL}/ais`;
+  const res = await fetch(url, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch AIS vessels: ${res.status}`);
+  return res.json();
+}
+
 

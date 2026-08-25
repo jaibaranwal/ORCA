@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, GeoJSON, Circle, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { ZoneInfo, BoundariesGeoJSON, DecisionResult, GeoLocation, SSTGridResponse } from '@/lib/types';
-import { fetchSSTGrid } from '@/lib/api';
+import { ZoneInfo, BoundariesGeoJSON, DecisionResult, GeoLocation, SSTGridResponse, AISVessel } from '@/lib/types';
+import { fetchSSTGrid, fetchAISVessels } from '@/lib/api';
 
 // Map center adjuster
 function ChangeView({ center, zoom }: { center: [number, number]; zoom: number }) {
@@ -39,6 +39,7 @@ export default function OrcaMapInner({
     waves: true,
     pfz: true,
     sst: true,
+    ais: true,
     boundaries: true,
     restricted: true,
     risk: true,
@@ -46,11 +47,16 @@ export default function OrcaMapInner({
 
   const [showLayerMenu, setShowLayerMenu] = useState(false);
   const [sstData, setSstData] = useState<SSTGridResponse | null>(null);
+  const [aisVessels, setAisVessels] = useState<AISVessel[]>([]);
 
   useEffect(() => {
     fetchSSTGrid()
       .then((data) => setSstData(data))
       .catch((err) => console.warn('Could not load SST grid:', err));
+
+    fetchAISVessels()
+      .then((data) => setAisVessels(data.vessels || []))
+      .catch((err) => console.warn('Could not load AIS vessels:', err));
   }, []);
 
   // Coordinates
@@ -120,6 +126,42 @@ export default function OrcaMapInner({
     [7.8, 76.8]
   ];
 
+  // AIS Vessel Icon Generator with directional heading
+  const createVesselIcon = (vessel: AISVessel) => {
+    let bgColor = '#10b981'; // fishing (emerald)
+    let symbol = '🐟';
+    if (vessel.type === 'patrol') {
+      bgColor = '#3b82f6'; // coast guard (blue)
+      symbol = '🛡️';
+    } else if (vessel.type === 'cargo') {
+      bgColor = '#f59e0b'; // cargo (amber)
+      symbol = '🚢';
+    } else if (vessel.type === 'research') {
+      bgColor = '#8b5cf6'; // research (purple)
+      symbol = '🔬';
+    }
+
+    return L.divIcon({
+      className: 'custom-ais-vessel-icon',
+      html: `<div style="
+        background-color: ${bgColor};
+        color: white;
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        border: 2px solid white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.45);
+        transform: rotate(${vessel.heading_deg}deg);
+      ">${symbol}</div>`,
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
+    });
+  };
+
   return (
     <div className="relative w-full h-full">
       {/* Floating Layer Controls Badge */}
@@ -182,6 +224,19 @@ export default function OrcaMapInner({
 
             <label className="flex items-center justify-between cursor-pointer hover:text-white">
               <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span>🚢 AIS Vessel Fleet & Traffic</span>
+              </span>
+              <input
+                type="checkbox"
+                checked={layers.ais}
+                onChange={(e) => setLayers({ ...layers, ais: e.target.checked })}
+                className="rounded accent-blue-600"
+              />
+            </label>
+
+            <label className="flex items-center justify-between cursor-pointer hover:text-white">
+              <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-rose-500" />
                 <span>🚫 Restricted Corridors</span>
               </span>
@@ -235,7 +290,12 @@ export default function OrcaMapInner({
         </span>
         {layers.sst && (
           <span className="border-l border-slate-700 pl-2 flex items-center gap-1 text-cyan-300">
-            <span className="w-2 h-2 rounded-full bg-cyan-400" /> NOAA SST Thermal Front (27.0-27.8°C)
+            <span className="w-2 h-2 rounded-full bg-cyan-400" /> SST Front (27.0-27.8°C)
+          </span>
+        )}
+        {layers.ais && (
+          <span className="border-l border-slate-700 pl-2 flex items-center gap-1.5 text-emerald-400">
+            <span>🐟 Fleet Traffic ({aisVessels.length})</span>
           </span>
         )}
       </div>
@@ -417,6 +477,44 @@ export default function OrcaMapInner({
             </Circle>
           );
         })}
+
+        {/* 8. Simulated AIS Coastal Vessel Fleet & Maritime Traffic Layer */}
+        {layers.ais && aisVessels && aisVessels.map((vessel) => (
+          <Marker
+            key={`ais_${vessel.mmsi}`}
+            position={[vessel.lat, vessel.lon]}
+            icon={createVesselIcon(vessel)}
+          >
+            <Popup className="custom-popup">
+              <div className="text-xs p-1 font-sans text-slate-900 max-w-[220px]">
+                <div className="flex items-center justify-between gap-2 border-b border-slate-200 pb-1 mb-1">
+                  <strong className="text-blue-700 block font-bold text-xs">{vessel.name}</strong>
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase ${
+                    vessel.type === 'patrol'
+                      ? 'bg-blue-100 text-blue-800'
+                      : vessel.type === 'fishing'
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : vessel.type === 'cargo'
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-purple-100 text-purple-800'
+                  }`}>
+                    {vessel.type}
+                  </span>
+                </div>
+                <div className="space-y-0.5 text-[11px] text-slate-600">
+                  <div>Subtype: <strong>{vessel.subtype || vessel.type}</strong></div>
+                  <div>MMSI: <span className="font-mono text-[10px] text-slate-500">{vessel.mmsi}</span></div>
+                  {vessel.registration && <div>Reg: <span className="font-mono text-[10px]">{vessel.registration}</span></div>}
+                  <div>Speed / Course: <strong>{vessel.speed_knots} kts</strong> • {vessel.heading_deg}°</div>
+                  <div>Status: <span className="text-slate-800 font-medium">{vessel.status}</span></div>
+                  {vessel.destination && <div>Bound: <strong>{vessel.destination}</strong></div>}
+                  {vessel.base_port && <div>Base: {vessel.base_port}</div>}
+                  <div className="text-[9px] text-slate-400 pt-1 font-mono">Simulated AIS Coastal Feed</div>
+                </div>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
       </MapContainer>
     </div>
   );
