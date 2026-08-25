@@ -82,12 +82,13 @@ export interface DecisionResult {
 }
 
 export interface DecisionRequest {
-  user_id: string;
+  user_id?: string;
   zone_id: string;
   planned_start?: string;
   planned_return?: string;
-  user_role: string;
+  user_role?: string;
   origin: GeoLocation;
+  language?: string;
 }
 
 export interface UserProfile {
@@ -337,5 +338,29 @@ export interface GeocodeResponse {
   query: string;
   source: string;
   results: GeocodeResult[];
+}
+
+export interface ThresholdsConfig {
+  config_version?: string;
+  disclaimer?: string;
+  wave_height_safe_m: number;
+  wave_height_caution_m: number;
+  wind_speed_safe_kmh: number;
+  wind_speed_caution_kmh: number;
+  current_speed_caution_ms: number;
+  visibility_min_km: number;
+  score_go_threshold: number;
+  score_caution_threshold: number;
+  weights: {
+    safety: number;
+    fishing: number;
+    effort: number;
+  };
+}
+
+export interface ThresholdsUpdateResponse {
+  status: string;
+  message: string;
+  config: ThresholdsConfig;
 }
 

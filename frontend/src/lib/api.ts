@@ -196,4 +196,30 @@ export async function searchLocations(query: string): Promise<import('./types').
   return res.json();
 }
 
+export async function fetchThresholdsConfig(): Promise<import('./types').ThresholdsConfig> {
+  const res = await fetch(`${API_BASE_URL}/config/thresholds`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch thresholds: ${res.status}`);
+  return res.json();
+}
+
+export async function saveThresholdsConfig(
+  config: Partial<import('./types').ThresholdsConfig>
+): Promise<import('./types').ThresholdsUpdateResponse> {
+  const res = await fetch(`${API_BASE_URL}/config/thresholds`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(config),
+  });
+  if (!res.ok) throw new Error(`Failed to update thresholds: ${res.status}`);
+  return res.json();
+}
+
+export async function resetThresholdsConfig(): Promise<import('./types').ThresholdsUpdateResponse> {
+  const res = await fetch(`${API_BASE_URL}/config/thresholds/reset`, {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error(`Failed to reset thresholds: ${res.status}`);
+  return res.json();
+}
+
 

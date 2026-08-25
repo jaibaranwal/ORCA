@@ -21,6 +21,9 @@ import {
 import OrcaMap from '@/components/Map/OrcaMap';
 import Header, { NavTabType, DEMO_PORTS } from '@/components/Navigation/Header';
 import MarineSidePanel from '@/components/Dashboard/MarineSidePanel';
+import DemoTourBar from '@/components/Navigation/DemoTourBar';
+import ThresholdsModal from '@/components/Navigation/ThresholdsModal';
+import JudgeReferenceModal from '@/components/Navigation/JudgeReferenceModal';
 
 export default function MarineDashboard() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
@@ -33,6 +36,9 @@ export default function MarineDashboard() {
   const [language, setLanguage] = useState<'en' | 'hi'>('en');
   const [activeNavTab, setActiveNavTab] = useState<NavTabType>('dashboard');
   
+  const [showThresholdsModal, setShowThresholdsModal] = useState(false);
+  const [showJudgeModal, setShowJudgeModal] = useState(false);
+
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -125,6 +131,23 @@ export default function MarineDashboard() {
         onResetDemo={handleReset}
       />
 
+      {/* SIH 2026 Interactive Guided Demo Tour Bar */}
+      <DemoTourBar
+        zones={zones}
+        selectedZone={selectedZone}
+        decision={decision}
+        activeDecisionObject={activeTrackedDecision}
+        userOrigin={userOrigin}
+        language={language}
+        onSelectZone={handleSelectZone}
+        onSetDecision={(dec) => setDecision(dec)}
+        onSetActiveDecisionObject={handleDecisionTracked}
+        onSelectNavTab={(tab) => setActiveNavTab(tab)}
+        onOpenThresholds={() => setShowThresholdsModal(true)}
+        onOpenJudgeReference={() => setShowJudgeModal(true)}
+        onRefreshData={loadInitialData}
+      />
+
       {/* Main Dashboard Layout (Map on Left, Side Panel on Right) */}
       <main className="flex-1 max-w-[1600px] w-full mx-auto p-3.5 md:p-4 flex flex-col gap-3">
         
@@ -134,7 +157,7 @@ export default function MarineDashboard() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch h-[calc(100vh-80px)] min-h-[620px]">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch h-[calc(100vh-125px)] min-h-[600px]">
           
           {/* Left Panel: GIS Map (7 of 12 columns, ~60%) */}
           <div className="lg:col-span-7 flex flex-col bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg p-2.5">
@@ -181,6 +204,21 @@ export default function MarineDashboard() {
         </div>
 
       </main>
+
+      {/* Threshold Tuning Modal */}
+      <ThresholdsModal
+        isOpen={showThresholdsModal}
+        onClose={() => setShowThresholdsModal(false)}
+        onThresholdsUpdated={() => {
+          if (selectedZone) handleSelectZone(selectedZone);
+        }}
+      />
+
+      {/* SIH Judge Defense Reference Modal */}
+      <JudgeReferenceModal
+        isOpen={showJudgeModal}
+        onClose={() => setShowJudgeModal(false)}
+      />
 
     </div>
   );

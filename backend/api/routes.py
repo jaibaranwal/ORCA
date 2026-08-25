@@ -421,3 +421,74 @@ async def geocode_location(q: str = Query(..., min_length=1)):
         "results": CURATED_COASTAL_PORTS[:4]
     }
 
+# -------------------------------------------------------------
+# PHASE 9: LIVE THRESHOLDS CONFIGURATOR (SIH JUDGE DEMO)
+# -------------------------------------------------------------
+
+DEFAULT_THRESHOLDS = {
+    "config_version": "prototype_v1",
+    "disclaimer": "PROTOTYPE THRESHOLDS ONLY. Not official maritime safety standards.",
+    "wave_height_safe_m": 1.5,
+    "wave_height_caution_m": 2.5,
+    "wind_speed_safe_kmh": 30.0,
+    "wind_speed_caution_kmh": 50.0,
+    "current_speed_caution_ms": 1.0,
+    "visibility_min_km": 2.0,
+    "score_go_threshold": 75,
+    "score_caution_threshold": 50,
+    "weights": {
+        "safety": 0.50,
+        "fishing": 0.30,
+        "effort": 0.20
+    }
+}
+
+CONFIG_DIR = os.path.join(os.path.dirname(__file__), "..", "config")
+THRESHOLDS_FILE = os.path.join(CONFIG_DIR, "thresholds.json")
+
+@router.get("/config/thresholds")
+async def get_thresholds_config():
+    """Returns current active safety thresholds and scoring weights."""
+    if os.path.exists(THRESHOLDS_FILE):
+        try:
+            with open(THRESHOLDS_FILE, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return DEFAULT_THRESHOLDS
+
+@router.post("/config/thresholds")
+async def update_thresholds_config(new_config: Dict[str, Any] = Body(...)):
+    """Updates active thresholds dynamically in memory and persists to thresholds.json."""
+    current = DEFAULT_THRESHOLDS.copy()
+    if os.path.exists(THRESHOLDS_FILE):
+        try:
+            with open(THRESHOLDS_FILE, "r") as f:
+                current = json.load(f)
+        except Exception:
+            pass
+    
+    current.update(new_config)
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+    with open(THRESHOLDS_FILE, "w") as f:
+        json.dump(current, f, indent=2)
+        
+    return {
+        "status": "success",
+        "message": "Safety thresholds updated successfully.",
+        "config": current
+    }
+
+@router.post("/config/thresholds/reset")
+async def reset_thresholds_config():
+    """Resets safety thresholds back to default SIH values."""
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+    with open(THRESHOLDS_FILE, "w") as f:
+        json.dump(DEFAULT_THRESHOLDS, f, indent=2)
+    return {
+        "status": "success",
+        "message": "Safety thresholds reset to SIH defaults.",
+        "config": DEFAULT_THRESHOLDS
+    }
+
+

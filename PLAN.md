@@ -1727,6 +1727,14 @@ All errors return structured JSON:
 - [x] Hindi/Hinglish query understanding tested
 - [x] Nominatim coastal location & port geocoding search
 
+### Phase 9 — Interactive Presentation / Judge Demo Tour & Live Threshold Tuning
+- [x] /api/config/thresholds endpoint (GET / POST / RESET)
+- [x] Live safety thresholds and composite score weights configurator UI
+- [x] Dynamic re-evaluation proof: changing limits instantly updates decision verdicts
+- [x] 8-step 1-click guided SIH presentation tour toolbar (DemoTourBar)
+- [x] Quick-access SIH Judge Defense & Architecture cheat sheet modal (JudgeReferenceModal)
+- [x] End-to-end full demo suite verification (100% test pass rate)
+
 ---
 
 ## 28. P0 / P1 / P2 Priorities
