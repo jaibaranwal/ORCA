@@ -551,24 +551,38 @@ async def transcribe_voice_audio(
 ):
     """
     Transcribes audio queries into text using Gnani Prisma v2.5 ASR.
-    Accepts audio file (WAV, MP3, WebM, OGG).
+    Accepts standard audio file (WAV PCM, MP3, OGG, FLAC, AAC).
     """
     try:
         content = await file.read()
-        if not content:
+        file_size = len(content) if content else 0
+        content_type = file.content_type or "unknown"
+        filename = file.filename or "unknown"
+
+        logger.info(
+            f"[VOICE STT] Request received | filename={filename} | "
+            f"mime={content_type} | size={file_size}B | language={language_code}"
+        )
+
+        if not content or file_size == 0:
             raise HTTPException(status_code=400, detail="Empty audio file provided")
 
         result = transcribe_audio(
             audio_content=content,
             language_code=language_code,
-            filename=file.filename
+            filename=file.filename,
+            mime_type=content_type
         )
         return result
     except HTTPException:
         raise
+    except ValueError as ve:
+        logger.warning(f"[VOICE STT] Invalid input format: {ve}")
+        raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
-        logger.error(f"Gnani STT transcription failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Voice transcription failed: {str(e)}")
+        logger.error(f"[VOICE STT] Transcription failed: {e}")
+        safe_msg = str(e)
+        raise HTTPException(status_code=500, detail=f"Voice transcription failed: {safe_msg}")
 
 # -------------------------------------------------------------
 # LIVING DECISION AUTONOMOUS WATCHER DAEMON

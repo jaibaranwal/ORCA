@@ -269,7 +269,16 @@ export async function transcribeAudio(
     method: 'POST',
     body: formData,
   });
-  if (!res.ok) throw new Error(`Audio transcription failed: ${res.status}`);
+  if (!res.ok) {
+    let errorDetail = `Status ${res.status}`;
+    try {
+      const errJson = await res.json();
+      if (errJson?.detail) {
+        errorDetail = typeof errJson.detail === 'string' ? errJson.detail : JSON.stringify(errJson.detail);
+      }
+    } catch (_) {}
+    throw new Error(`Audio transcription failed: ${errorDetail}`);
+  }
   return res.json();
 }
 

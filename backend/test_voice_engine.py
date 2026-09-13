@@ -67,7 +67,7 @@ def test_voice_engine_full():
     print("✓ POST /api/voice/synthesize streamed valid MP3 audio.")
 
     time.sleep(1.5)
-    # POST /api/voice/transcribe
+    # POST /api/voice/transcribe (MP3 format)
     audio_file = io.BytesIO(en_audio)
     res_trans = client.post(
         "/api/voice/transcribe",
@@ -78,7 +78,33 @@ def test_voice_engine_full():
     data = res_trans.json()
     assert data["success"] is True
     assert len(data["transcript"]) > 0
-    print(f"✓ POST /api/voice/transcribe returned: '{data['transcript']}'")
+    print(f"✓ POST /api/voice/transcribe (MP3) returned: '{data['transcript']}'")
+
+    time.sleep(1.5)
+    # 6. POST /api/voice/transcribe with Linear PCM WAV (Frontend Browser Mic Format)
+    print(f"\n[TEST 6 - POST /api/voice/transcribe with Linear PCM WAV]")
+    import wave, struct, math
+    wav_buf = io.BytesIO()
+    with wave.open(wav_buf, "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(16000)
+        frames = bytearray()
+        for i in range(16000):
+            val = int(math.sin(2 * math.pi * 440 * i / 16000) * 8000)
+            frames.extend(struct.pack("<h", val))
+        wf.writeframes(frames)
+    wav_bytes = wav_buf.getvalue()
+
+    res_wav = client.post(
+        "/api/voice/transcribe",
+        files={"file": ("speech.wav", io.BytesIO(wav_bytes), "audio/wav")},
+        data={"language_code": "hi-IN"}
+    )
+    assert res_wav.status_code == 200
+    wav_data = res_wav.json()
+    assert wav_data["success"] is True
+    print(f"✓ POST /api/voice/transcribe (WAV) returned success=True (model: {wav_data['model']})")
 
     print("\n==================================================")
     print("🎉 ALL GNANI VOICE AI ENGINE TESTS PASSED (100%)!")

@@ -119,24 +119,43 @@ def synthesize_speech(
 def transcribe_audio(
     audio_content: bytes,
     language_code: str = "auto",
-    filename: Optional[str] = None
+    filename: Optional[str] = None,
+    mime_type: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Transcribes audio into text using Gnani Prisma v2.5 ASR.
-    Supports WAV, MP3, WebM, OGG, etc.
+    Supports standard PCM WAV, MP3, OGG, FLAC, AAC, and M4A.
     """
     api_key = os.getenv("GNANI_API_KEY", "")
     if not api_key:
         raise ValueError("GNANI_API_KEY is not configured in environment.")
 
+    file_size = len(audio_content)
     bcp_lang = LANGUAGE_MAP.get(language_code.lower(), "hi-IN")
+
+    # Reject raw WebM early with informative message since Gnani STT requires linear PCM or standard compressed audio
+    if audio_content.startswith(b"\x1a\x45\xdf\xa3"):
+        logger.warning(f"[VOICE STT] Rejecting WebM payload | size={file_size}B | mime={mime_type}")
+        raise ValueError("WebM/Opus audio is unsupported by Gnani STT. Browser client must submit linear PCM WAV or MP3 audio.")
+
+    # Determine appropriate file extension based on filename or audio magic numbers
     suffix = ".wav"
     if filename:
         ext = os.path.splitext(filename)[1].lower()
-        if ext in [".wav", ".mp3", ".ogg", ".webm", ".m4a", ".flac"]:
+        if ext in [".wav", ".mp3", ".ogg", ".flac", ".m4a", ".aac"]:
             suffix = ext
 
+    if audio_content.startswith(b"RIFF") and b"WAVE" in audio_content[:12]:
+        suffix = ".wav"
+    elif audio_content.startswith(b"ID3") or (len(audio_content) > 2 and audio_content[0] == 0xFF and (audio_content[1] & 0xE0) == 0xE0):
+        suffix = ".mp3"
+    elif audio_content.startswith(b"OggS"):
+        suffix = ".ogg"
+    elif audio_content.startswith(b"fLaC"):
+        suffix = ".flac"
+
     from gnani.stt import GnaniSTTClient
+    from gnani.stt.exceptions import APIError, InvalidAudioError
 
     client = GnaniSTTClient(api_key=api_key)
 
@@ -148,11 +167,19 @@ def transcribe_audio(
     try:
         for attempt in range(3):
             try:
-                logger.info(f"Transcribing audio via Gnani Prisma v2.5 (attempt {attempt+1}) | lang={bcp_lang} | file={tmp_path}")
+                logger.info(
+                    f"[VOICE STT] Calling Gnani Prisma v2.5 (attempt {attempt+1}) | "
+                    f"lang={bcp_lang} | size={file_size}B | format={suffix} | mime={mime_type}"
+                )
                 result = client.transcribe(
                     tmp_path,
                     language_code=bcp_lang,
                     format="transcribe"
+                )
+                logger.info(
+                    f"[VOICE STT] Gnani STT success | HTTP 200 | "
+                    f"transcript='{result.get('transcript', '')}' | "
+                    f"latency={result.get('end_to_end_latency', 0.0):.3f}s"
                 )
                 return {
                     "success": True,
@@ -162,9 +189,31 @@ def transcribe_audio(
                     "processing_time": result.get("processing_time", 0.0),
                     "end_to_end_latency": result.get("end_to_end_latency", 0.0)
                 }
+            except APIError as api_err:
+                logger.error(
+                    f"[VOICE STT] Gnani API error | HTTP status={api_err.status_code} | "
+                    f"response={api_err.body[:300]}"
+                )
+                if api_err.status_code == 429 and attempt < 2:
+                    logger.warning(f"Gnani STT rate limited (429). Retrying after {2.0 * (attempt + 1)}s...")
+                    time.sleep(2.0 * (attempt + 1))
+                    continue
+
+                safe_msg = f"Gnani STT API error ({api_err.status_code})"
+                try:
+                    import json
+                    parsed = json.loads(api_err.body)
+                    if "error" in parsed and isinstance(parsed["error"], dict):
+                        err_msg = parsed["error"].get("message") or parsed["error"].get("type")
+                        if err_msg:
+                            safe_msg = err_msg.split("\n")[0]
+                except Exception:
+                    pass
+                raise RuntimeError(safe_msg)
             except Exception as e:
+                logger.error(f"[VOICE STT] Transcription attempt {attempt+1} error: {e}")
                 if ("429" in str(e) or "RATE_LIMITED" in str(e)) and attempt < 2:
-                    logger.warning(f"Gnani STT rate limited (429). Retrying after {2.0 * (attempt + 1)}s backoff...")
+                    logger.warning(f"Gnani STT rate limited (429). Retrying after {2.0 * (attempt + 1)}s...")
                     time.sleep(2.0 * (attempt + 1))
                     continue
                 raise

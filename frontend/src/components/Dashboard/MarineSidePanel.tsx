@@ -27,6 +27,7 @@ import {
   triggerWatcherCycle,
   getSafetyManifestHtmlUrl
 } from '@/lib/api';
+import { startAudioRecording, ActiveAudioRecording } from '@/lib/audioRecorder';
 import { NavTabType } from '@/components/Navigation/Header';
 import { WatcherStatusResponse } from '@/lib/types';
 
@@ -114,8 +115,7 @@ export default function MarineSidePanel({
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
+  const activeRecordingRef = useRef<ActiveAudioRecording | null>(null);
 
   // Section 33: Autonomous Watcher Daemon & Safety Clearance State
   const [watcherStatus, setWatcherStatus] = useState<WatcherStatusResponse | null>(null);
@@ -156,41 +156,8 @@ export default function MarineSidePanel({
 
   const startVoiceRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      audioChunksRef.current = [];
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-        stream.getTracks().forEach((t) => t.stop());
-
-        if (audioBlob.size > 0) {
-          setIsTranscribing(true);
-          try {
-            const langCode = language === 'hi' ? 'hi-IN' : 'en-IN';
-            const res = await transcribeAudio(audioBlob, langCode);
-            if (res.transcript) {
-              setQueryInput(res.transcript);
-              handleQuerySubmit(res.transcript);
-              showToast('success', `🎙️ Transcribed via Gnani Prisma v2.5: "${res.transcript}"`);
-            }
-          } catch (err: any) {
-            console.error('Gnani STT error:', err);
-            showToast('alert', 'Voice transcription failed. Please try again.');
-          } finally {
-            setIsTranscribing(false);
-          }
-        }
-      };
-
-      mediaRecorder.start();
+      const recording = await startAudioRecording();
+      activeRecordingRef.current = recording;
       setIsRecording(true);
     } catch (err) {
       console.warn('Microphone access denied:', err);
@@ -198,10 +165,33 @@ export default function MarineSidePanel({
     }
   };
 
-  const stopVoiceRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
+  const stopVoiceRecording = async () => {
+    if (!activeRecordingRef.current) return;
+    const recording = activeRecordingRef.current;
+    activeRecordingRef.current = null;
+    setIsRecording(false);
+    setIsTranscribing(true);
+
+    try {
+      const audioBlob = await recording.stop();
+      if (audioBlob && audioBlob.size > 0) {
+        const langCode = language === 'hi' ? 'hi-IN' : 'en-IN';
+        const res = await transcribeAudio(audioBlob, langCode);
+        if (res.transcript && res.transcript.trim().length > 0) {
+          setQueryInput(res.transcript);
+          handleQuerySubmit(res.transcript);
+          showToast('success', `🎙️ Transcribed via Gnani Prisma v2.5: "${res.transcript}"`);
+        } else {
+          showToast('info', 'No speech detected. Please speak clearly into the microphone.');
+        }
+      }
+    } catch (err: any) {
+      console.error('Gnani STT error:', err);
+      const rawMsg = err?.message || 'Voice transcription failed. Please try again.';
+      const cleanMsg = rawMsg.replace(/^Audio transcription failed:\s*/i, '');
+      showToast('alert', cleanMsg.length < 90 ? cleanMsg : 'Voice transcription failed. Please try again.');
+    } finally {
+      setIsTranscribing(false);
     }
   };
 

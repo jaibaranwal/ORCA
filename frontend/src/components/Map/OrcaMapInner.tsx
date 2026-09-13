@@ -308,11 +308,13 @@ export default function OrcaMapInner({
       >
         <ChangeView center={selectedZone?.centroid ? [selectedZone.centroid.lat, selectedZone.centroid.lon] : [9.95, 75.95]} zoom={9} />
 
-        {/* CartoDB Dark / Voyager Tiles */}
+        {/* OpenStreetMap Reliable Standard Tiles (No API key required) */}
         <TileLayer
-          attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          maxZoom={19}
         />
+
 
         {/* 1. Origin Port Marker */}
         <Marker position={originCoord} icon={portIcon}>
