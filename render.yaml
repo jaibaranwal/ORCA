@@ -20,4 +20,5 @@ services:
       - key: CACHE_TTL_SECONDS
         value: "3600"
       - key: ALLOWED_ORIGINS
-        value: "https://*.vercel.app"
+        value: "https://orca-black.vercel.app"
+

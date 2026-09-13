@@ -28,23 +28,29 @@ app = FastAPI(
 )
 
 # CORS middleware for frontend communication
+# Supports explicit ALLOWED_ORIGINS, Vercel subdomains regex, and local dev
 allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
-origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
-if not origins:
-    origins = [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        os.getenv("FRONTEND_URL", "http://localhost:3000")
-    ]
+raw_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
+
+default_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://orca-black.vercel.app",
+    os.getenv("FRONTEND_URL", "http://localhost:3000")
+]
+
+# Merge origins without invalid wildcards (e.g. *.vercel.app is handled by allow_origin_regex)
+origins = list(set([o for o in (raw_origins + default_origins) if "*" not in o]))
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins if origins else ["*"],
-    allow_origin_regex=r"https://.*\.vercel\.app" if not allowed_origins_env else None,
+    allow_origins=origins,
+    allow_origin_regex=r"^https:\/\/.*\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 
 @app.exception_handler(Exception)
