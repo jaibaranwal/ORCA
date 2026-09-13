@@ -23,7 +23,7 @@ init_db()
 
 app = FastAPI(
     title="ORCA API",
-    description="Marine Ecosystem Reasoning with Collaborative Agents — SIH 2026",
+    description="Operational Reasoning & Marine Intelligence Decision Engine",
     version="1.0.0"
 )
 

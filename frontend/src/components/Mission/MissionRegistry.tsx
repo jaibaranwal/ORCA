@@ -170,7 +170,7 @@ export default function MissionRegistry({
                         onClick={(e) => handleQuickSimulate(e, dec.decision_id)}
                         disabled={actionId === dec.decision_id}
                         className="px-2.5 py-0.5 bg-amber-950/80 hover:bg-amber-900 border border-amber-700 text-amber-300 text-[10px] rounded font-mono transition-all"
-                        title="Simulates adverse wave height of 2.8m for SIH judging flow"
+                        title="Simulates adverse wave height spike of 2.8m to verify watcher alert trigger"
                       >
                         ⚡ 2.8m Waves Demo
                       </button>

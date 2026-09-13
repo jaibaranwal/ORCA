@@ -39,10 +39,10 @@ export default function JudgeReferenceModal({ isOpen, onClose }: JudgeReferenceM
         <div className="flex items-center justify-between pb-2 border-b border-slate-800 shrink-0">
           <div>
             <h3 className="font-semibold text-white text-sm flex items-center gap-1.5">
-              <span>🏛️</span> SIH 2026 Presentation & Judge Defense Cheat Sheet
+              <span>🏛️</span> System Architecture & Technical Specifications
             </h3>
             <p className="text-[11px] text-slate-400 mt-0.5">
-              Key architectural defenses from Section 30 of ORCA Architecture Plan
+              Enterprise architectural verification & safety guarantees (Section 30)
             </p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white text-sm">

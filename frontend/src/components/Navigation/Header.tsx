@@ -113,12 +113,12 @@ export default function Header({
           <div>
             <div className="flex items-center gap-2">
               <span className="font-extrabold text-base text-white tracking-tight">ORCA</span>
-              <span className="text-[11px] px-1.5 py-0.5 bg-blue-950/80 border border-blue-800 text-blue-300 font-mono rounded">
-                SIH 2026
+              <span className="text-[10px] px-1.5 py-0.5 bg-blue-950/80 border border-blue-800 text-blue-300 font-mono font-semibold rounded tracking-wider">
+                ENTERPRISE
               </span>
             </div>
             <p className="text-[10px] text-slate-400 font-sans hidden sm:block">
-              Living Marine Decision Support & Monitoring Engine
+              Marine Decision Support & Ocean Intelligence Engine
             </p>
           </div>
         </div>

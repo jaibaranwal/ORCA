@@ -146,7 +146,7 @@ export default function MarineDashboard() {
         onResetDemo={handleReset}
       />
 
-      {/* SIH 2026 Interactive Guided Demo Tour Bar */}
+      {/* Interactive Guided Workflow Tour Bar */}
       <DemoTourBar
         zones={zones}
         selectedZone={selectedZone}
@@ -260,7 +260,7 @@ export default function MarineDashboard() {
         }}
       />
 
-      {/* SIH Judge Defense Reference Modal */}
+      {/* Enterprise Architecture & Technical Specifications Modal */}
       <JudgeReferenceModal
         isOpen={showJudgeModal}
         onClose={() => setShowJudgeModal(false)}

@@ -51,7 +51,7 @@ export default function ThresholdsModal({ isOpen, onClose, onThresholdsUpdated }
     try {
       const res = await resetThresholdsConfig();
       setConfig(res.config);
-      setStatusMsg('✓ Thresholds reset to SIH prototype defaults.');
+      setStatusMsg('✓ Thresholds reset to marine regulatory standard defaults.');
       if (onThresholdsUpdated) onThresholdsUpdated();
     } catch (err: any) {
       setStatusMsg(`Failed to reset: ${err.message}`);
@@ -71,7 +71,7 @@ export default function ThresholdsModal({ isOpen, onClose, onThresholdsUpdated }
               <span>⚙️</span> Dynamic Safety Thresholds & Weight Tuner
             </h3>
             <p className="text-[11px] text-slate-400 mt-0.5">
-              Live configuration for SIH Judge defense (Section 13) — Never hardcoded in python code
+              Live operational configuration for maritime safety parameters (Section 13)
             </p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white text-sm">
@@ -258,7 +258,7 @@ export default function ThresholdsModal({ isOpen, onClose, onThresholdsUpdated }
                 disabled={saving}
                 className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs transition-colors"
               >
-                Reset to SIH Defaults
+                Reset to Standard Defaults
               </button>
               <div className="flex items-center gap-2">
                 <button

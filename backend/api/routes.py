@@ -400,7 +400,7 @@ async def geocode_location(q: str = Query(..., min_length=1)):
         import urllib.request
         encoded_q = urllib.parse.quote(f"{q}, India")
         url = f"https://nominatim.openstreetmap.org/search?q={encoded_q}&format=json&limit=5&countrycodes=in"
-        req = urllib.request.Request(url, headers={"User-Agent": "ORCA-Marine-Decision-Support/1.0 (sih2026@orca.internal)"})
+        req = urllib.request.Request(url, headers={"User-Agent": "ORCA-Marine-Decision-Support/1.0 (marine@orca.internal)"})
         with urllib.request.urlopen(req, timeout=3) as resp:
             if resp.status == 200:
                 raw_results = json.loads(resp.read().decode("utf-8"))
@@ -427,7 +427,7 @@ async def geocode_location(q: str = Query(..., min_length=1)):
     }
 
 # -------------------------------------------------------------
-# PHASE 9: LIVE THRESHOLDS CONFIGURATOR (SIH JUDGE DEMO)
+# PHASE 9: LIVE THRESHOLDS CONFIGURATOR
 # -------------------------------------------------------------
 
 DEFAULT_THRESHOLDS = {
@@ -486,13 +486,13 @@ async def update_thresholds_config(new_config: Dict[str, Any] = Body(...)):
 
 @router.post("/config/thresholds/reset")
 async def reset_thresholds_config():
-    """Resets safety thresholds back to default SIH values."""
+    """Resets safety thresholds back to default standard values."""
     os.makedirs(CONFIG_DIR, exist_ok=True)
     with open(THRESHOLDS_FILE, "w") as f:
         json.dump(DEFAULT_THRESHOLDS, f, indent=2)
     return {
         "status": "success",
-        "message": "Safety thresholds reset to SIH defaults.",
+        "message": "Safety thresholds reset to standard defaults.",
         "config": DEFAULT_THRESHOLDS
     }
 

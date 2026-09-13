@@ -39,7 +39,7 @@ export default function DemoTourBar({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [isExecuting, setIsExecuting] = useState(false);
-  const [tourMessage, setTourMessage] = useState<string>('Ready for SIH 2026 Presentation Tour.');
+  const [tourMessage, setTourMessage] = useState<string>('Ready for Interactive Platform Walkthrough.');
 
   const STEPS = [
     { num: 1, label: '1. Ask Query', desc: 'Pre-fills query & evaluates user intent' },
@@ -204,7 +204,7 @@ export default function DemoTourBar({
         <div className="flex items-center gap-2 overflow-x-auto py-0.5">
           <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-blue-700 to-cyan-600 rounded-lg text-white font-bold text-[11px] shadow-sm shrink-0">
             <span>🎬</span>
-            <span>SIH DEMO TOUR</span>
+            <span>PLATFORM TOUR</span>
           </div>
 
           <div className="flex items-center gap-1 shrink-0">
@@ -250,10 +250,10 @@ export default function DemoTourBar({
           <button
             onClick={onOpenJudgeReference}
             className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-cyan-300 font-medium text-[11px] flex items-center gap-1 transition-colors"
-            title="View Judge Q&A Defense cheat sheet"
+            title="View Architecture & Technical Specifications"
           >
             <span>🏛️</span>
-            <span className="hidden md:inline">Judge Q&A</span>
+            <span className="hidden md:inline">Architecture</span>
           </button>
 
           <button
@@ -274,7 +274,7 @@ export default function DemoTourBar({
           <span className="font-mono text-cyan-200">{tourMessage}</span>
         </div>
         <span className="text-[10px] text-slate-500 font-mono hidden sm:inline">
-          SIH 2026 Presentation Flow: Step {currentStep} of 8
+          Decision Workflow: Step {currentStep} of 8
         </span>
       </div>
     </div>
