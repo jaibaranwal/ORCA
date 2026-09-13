@@ -1,8 +1,12 @@
-from fastapi import APIRouter, HTTPException, Query, Path, Body
+from fastapi import APIRouter, HTTPException, Query, Path, Body, Response, UploadFile, File, Form
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 import json
 import os
+import logging
+
+logger = logging.getLogger("orca.routes")
+from modules.voice_engine import get_voice_engine_status, synthesize_speech, transcribe_audio
 
 from models.schemas import (
     HealthResponse, 
@@ -64,6 +68,7 @@ async def health_check():
             "repair_engine": "Deterministic Repair & Wait Strategy Generator Active",
             "feedback_engine": "Prediction vs Actual Comparison & Outcome Capture Active",
             "sst_adapter": "NOAA ERDDAP + Thermal Front Detector Active",
+            "voice_engine": "Gnani Prisma v2.5 STT & Timbre v2.5 TTS Active",
             "environment": os.getenv("DEMO_MODE", "true")
         }
     )
@@ -505,6 +510,66 @@ async def get_coastal_ais_vessels(
     Returns active coastal vessel traffic records from simulated AIS coastal network.
     """
     return ais_adapter.get_vessels(vessel_type=type)
+
+# -------------------------------------------------------------
+# GNANI VOICE ENGINE: MULTILINGUAL STT (PRISMA) & TTS (TIMBRE)
+# -------------------------------------------------------------
+
+@router.get("/voice/status")
+async def get_voice_status():
+    """Returns Gnani Voice AI Engine configuration and supported models."""
+    return get_voice_engine_status()
+
+@router.post("/voice/synthesize")
+async def synthesize_voice_audio(payload: Dict[str, Any] = Body(...)):
+    """
+    Synthesizes natural voice audio for decision explanations using Gnani Timbre v2.5.
+    Returns streaming MP3 audio.
+    """
+    text = payload.get("text", "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Field 'text' is required")
+    
+    language = payload.get("language", "en")
+    voice = payload.get("voice")
+
+    try:
+        audio_bytes = synthesize_speech(text, language=language, voice=voice)
+        return Response(
+            content=audio_bytes,
+            media_type="audio/mpeg",
+            headers={"Content-Disposition": "inline; filename=orca_explanation.mp3"}
+        )
+    except Exception as e:
+        logger.error(f"Gnani TTS synthesis failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Speech synthesis failed: {str(e)}")
+
+@router.post("/voice/transcribe")
+async def transcribe_voice_audio(
+    file: UploadFile = File(...),
+    language_code: str = Form("auto")
+):
+    """
+    Transcribes audio queries into text using Gnani Prisma v2.5 ASR.
+    Accepts audio file (WAV, MP3, WebM, OGG).
+    """
+    try:
+        content = await file.read()
+        if not content:
+            raise HTTPException(status_code=400, detail="Empty audio file provided")
+
+        result = transcribe_audio(
+            audio_content=content,
+            language_code=language_code,
+            filename=file.filename
+        )
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Gnani STT transcription failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Voice transcription failed: {str(e)}")
+
 
 
 

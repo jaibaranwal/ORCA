@@ -20,7 +20,9 @@ import {
   simulateConditionChange, 
   fetchRepairOptions, 
   selectRepairOption, 
-  submitMissionFeedback 
+  submitMissionFeedback,
+  transcribeAudio,
+  playVoiceAudio
 } from '@/lib/api';
 import { NavTabType } from '@/components/Navigation/Header';
 
@@ -102,6 +104,76 @@ export default function MarineSidePanel({
   const [whatsAppSent, setWhatsAppSent] = useState(false);
   const [feedbackResult, setFeedbackResult] = useState<FeedbackResponse | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'alert' | 'info'; message: string } | null>(null);
+
+  // Gnani Voice AI State (Prisma v2.5 STT & Timbre v2.5 TTS)
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
+  const startVoiceRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        stream.getTracks().forEach((t) => t.stop());
+
+        if (audioBlob.size > 0) {
+          setIsTranscribing(true);
+          try {
+            const langCode = language === 'hi' ? 'hi-IN' : 'en-IN';
+            const res = await transcribeAudio(audioBlob, langCode);
+            if (res.transcript) {
+              setQueryInput(res.transcript);
+              handleQuerySubmit(res.transcript);
+              showToast('success', `🎙️ Transcribed via Gnani Prisma v2.5: "${res.transcript}"`);
+            }
+          } catch (err: any) {
+            console.error('Gnani STT error:', err);
+            showToast('alert', 'Voice transcription failed. Please try again.');
+          } finally {
+            setIsTranscribing(false);
+          }
+        }
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.warn('Microphone access denied:', err);
+      showToast('alert', 'Microphone access required for voice search.');
+    }
+  };
+
+  const stopVoiceRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const handlePlayVoice = async (text: string, id: string = 'verdict') => {
+    try {
+      setPlayingAudioId(id);
+      await playVoiceAudio(text, language);
+    } catch (err) {
+      console.error('Gnani TTS playback error:', err);
+      showToast('alert', 'Audio playback failed. Please check Gnani connection.');
+    } finally {
+      setPlayingAudioId(null);
+    }
+  };
 
   // Dynamic Timeline History State
   const [localTimeline, setLocalTimeline] = useState<Array<{
@@ -437,13 +509,30 @@ export default function MarineSidePanel({
                 type="text"
                 value={queryInput}
                 onChange={(e) => setQueryInput(e.target.value)}
-                placeholder="e.g. Kal subah fishing ke liye kahan jaana chahiye?"
-                disabled={queryLoading}
-                className="flex-1 px-3 py-1.5 bg-slate-950 border border-slate-700/80 rounded-lg text-xs text-white placeholder:text-slate-500 outline-none focus:border-blue-500 transition-colors"
+                placeholder={isRecording ? "Listening... Speak your query" : isTranscribing ? "Transcribing via Gnani Prisma v2.5..." : "e.g. Kal subah fishing ke liye kahan jaana chahiye?"}
+                disabled={queryLoading || isTranscribing}
+                className={`flex-1 px-3 py-1.5 bg-slate-950 border rounded-lg text-xs text-white outline-none transition-colors ${
+                  isRecording ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-slate-700/80 focus:border-blue-500'
+                }`}
               />
               <button
+                type="button"
+                onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
+                disabled={isTranscribing || queryLoading}
+                className={`px-2.5 py-1.5 rounded-lg border text-xs flex items-center gap-1 transition-all ${
+                  isRecording
+                    ? 'bg-rose-600 border-rose-500 text-white animate-pulse'
+                    : isTranscribing
+                    ? 'bg-amber-900/60 border-amber-600 text-amber-300'
+                    : 'bg-slate-900 border-slate-700 hover:bg-slate-800 text-slate-300'
+                }`}
+                title="Speak voice query (Gnani Prisma v2.5 ASR)"
+              >
+                <span>{isRecording ? '⏹️ Stop' : isTranscribing ? '⏳' : '🎙️'}</span>
+              </button>
+              <button
                 type="submit"
-                disabled={!queryInput.trim() || queryLoading}
+                disabled={!queryInput.trim() || queryLoading || isRecording}
                 className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium rounded-lg text-xs transition-colors shrink-0"
               >
                 {queryLoading ? '...' : 'Ask'}
@@ -526,8 +615,21 @@ export default function MarineSidePanel({
 
               {/* Explanation Text */}
               {decision.explanation && (
-                <div className="p-2.5 bg-slate-900/90 border border-slate-800 rounded-lg text-[11px] text-slate-300 leading-relaxed font-sans">
-                  {decision.explanation}
+                <div className="p-2.5 bg-slate-900/90 border border-slate-800 rounded-lg text-[11px] text-slate-300 leading-relaxed font-sans space-y-2">
+                  <p>{decision.explanation}</p>
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-800/80">
+                    <span className="text-[10px] text-slate-400 flex items-center gap-1 font-mono">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" /> Gnani Voice AI Active
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handlePlayVoice(decision.explanation || '', 'cockpit_decision')}
+                      disabled={playingAudioId === 'cockpit_decision'}
+                      className="px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-blue-400 hover:text-blue-300 text-[10px] font-semibold flex items-center gap-1 transition-colors border border-slate-700"
+                    >
+                      <span>{playingAudioId === 'cockpit_decision' ? '🔊 Speaking...' : '🔊 Read Aloud (Timbre v2.5)'}</span>
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -983,6 +1085,21 @@ export default function MarineSidePanel({
                 >
                   <p className="whitespace-pre-wrap">{item.text}</p>
 
+                  {item.sender === 'orca' && (
+                    <div className="mt-2 flex items-center justify-between pt-1 border-t border-slate-900">
+                      <span className="text-[9px] text-slate-500 font-mono">Gnani Voice AI</span>
+                      <button
+                        type="button"
+                        onClick={() => handlePlayVoice(item.text, item.id)}
+                        disabled={playingAudioId === item.id}
+                        className="text-[10px] text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors px-2 py-0.5 rounded bg-slate-900/80 hover:bg-slate-800 border border-slate-800"
+                        title="Listen to this response via Gnani Timbre v2.5"
+                      >
+                        <span>{playingAudioId === item.id ? '🔊 Speaking...' : '🔊 Listen'}</span>
+                      </button>
+                    </div>
+                  )}
+
                   {/* Decision Tag inside Chat */}
                   {item.decision && (
                     <div className="mt-2.5 pt-2 border-t border-slate-800 flex items-center justify-between gap-2">
@@ -1037,13 +1154,31 @@ export default function MarineSidePanel({
                 type="text"
                 value={queryInput}
                 onChange={(e) => setQueryInput(e.target.value)}
-                placeholder="Ask in English or Hindi (e.g. Why is the decision CAUTION?)..."
-                disabled={queryLoading}
-                className="flex-1 px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder:text-slate-500 outline-none focus:border-blue-500 transition-colors"
+                placeholder={isRecording ? "Listening... Speak your query" : isTranscribing ? "Transcribing via Gnani Prisma v2.5..." : "Ask in English or Hindi (e.g. Why is the decision CAUTION?)..."}
+                disabled={queryLoading || isTranscribing}
+                className={`flex-1 px-3.5 py-2 bg-slate-900 border rounded-xl text-xs text-white placeholder:text-slate-500 outline-none transition-colors ${
+                  isRecording ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-slate-700 focus:border-blue-500'
+                }`}
               />
               <button
+                type="button"
+                onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
+                disabled={isTranscribing || queryLoading}
+                className={`px-3 py-2 rounded-xl border text-xs flex items-center gap-1.5 transition-all ${
+                  isRecording
+                    ? 'bg-rose-600 border-rose-500 text-white animate-pulse'
+                    : isTranscribing
+                    ? 'bg-amber-900/60 border-amber-600 text-amber-300'
+                    : 'bg-slate-900 border-slate-750 hover:bg-slate-800 text-slate-300'
+                }`}
+                title="Speak voice query (Gnani Prisma v2.5 ASR)"
+              >
+                <span>{isRecording ? '⏹️ Stop' : isTranscribing ? '⏳' : '🎙️'}</span>
+                <span className="text-[11px] font-medium hidden sm:inline">{isRecording ? 'Stop' : isTranscribing ? 'Transcribing' : 'Voice'}</span>
+              </button>
+              <button
                 type="submit"
-                disabled={!queryInput.trim() || queryLoading}
+                disabled={!queryInput.trim() || queryLoading || isRecording}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold rounded-xl text-xs transition-colors shrink-0"
               >
                 Send

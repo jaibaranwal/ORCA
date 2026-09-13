@@ -229,4 +229,63 @@ export async function fetchAISVessels(type?: string): Promise<import('./types').
   return res.json();
 }
 
+// -------------------------------------------------------------
+// GNANI VOICE AI ENGINE (STT: PRISMA v2.5 / TTS: TIMBRE v2.5)
+// -------------------------------------------------------------
+
+export async function fetchVoiceStatus(): Promise<{
+  gnani_configured: boolean;
+  stt_engine: string;
+  tts_engine: string;
+  stt_model: string;
+  tts_model: string;
+  supported_languages: string[];
+  voices_count: number;
+  sample_voices: string[];
+}> {
+  const res = await fetch(`${API_BASE_URL}/voice/status`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch voice status: ${res.status}`);
+  return res.json();
+}
+
+export async function synthesizeSpeechAudio(text: string, language: string = 'en'): Promise<Blob> {
+  const res = await fetch(`${API_BASE_URL}/voice/synthesize`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, language }),
+  });
+  if (!res.ok) throw new Error(`Speech synthesis failed: ${res.status}`);
+  return res.blob();
+}
+
+export async function transcribeAudio(
+  audioBlob: Blob,
+  languageCode: string = 'auto'
+): Promise<{ success: boolean; transcript: string; model?: string }> {
+  const formData = new FormData();
+  formData.append('file', audioBlob, 'speech.wav');
+  formData.append('language_code', languageCode);
+  const res = await fetch(`${API_BASE_URL}/voice/transcribe`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!res.ok) throw new Error(`Audio transcription failed: ${res.status}`);
+  return res.json();
+}
+
+let activeAudioElement: HTMLAudioElement | null = null;
+
+export async function playVoiceAudio(text: string, language: string = 'en'): Promise<void> {
+  if (activeAudioElement) {
+    activeAudioElement.pause();
+    activeAudioElement = null;
+  }
+  const blob = await synthesizeSpeechAudio(text, language);
+  const url = URL.createObjectURL(blob);
+  const audio = new Audio(url);
+  activeAudioElement = audio;
+  await audio.play();
+}
+
+
 
