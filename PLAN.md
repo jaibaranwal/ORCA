@@ -1,10 +1,10 @@
 # ORCA — Marine Ecosystem Reasoning with Collaborative Agents
-## PLAN.md — Final Source of Truth for SIH 2026 Prototype
+## PLAN.md — Product and Technical Source of Truth for ORCA
 
-> **STATUS: FROZEN**
+> **STATUS: FROZEN — Product & Technical Contract**
 > This document is the project contract. Do not change the architecture, technology stack, or scope without explicit team agreement.
-> Before adding any feature, ask: *"Does this help demonstrate the Living Decision Lifecycle?"*
-> If NO — do not build it in V1.
+> Before adding any feature, ask: *"Does this help deliver or validate the Living Decision Lifecycle?"*
+> If NO — do not build it in the initial release.
 
 ---
 
@@ -39,7 +39,7 @@
 27. [Development Phases](#27-development-phases)
 28. [P0 / P1 / P2 Priorities](#28-p0--p1--p2-priorities)
 29. [Demo Flow](#29-demo-flow)
-30. [SIH Presentation Flow](#30-sih-presentation-flow)
+30. [ORCA Product Demonstration & Validation Flow](#30-orca-product-demonstration--validation-flow)
 31. [Testing Strategy](#31-testing-strategy)
 32. [Definition of Done](#32-definition-of-done)
 33. [Future Scope](#33-future-scope)
@@ -49,7 +49,7 @@
 
 ## 1. Executive Summary
 
-**ORCA** (Marine Ecosystem Reasoning with Collaborative Agents) is a marine decision-support platform built for SIH 2026, Problem Statement ID 26176, submitted by ISRO / Department of Space.
+**ORCA** (Marine Ecosystem Reasoning with Collaborative Agents) is a marine decision-support and intelligence platform designed to help marine users make safer, more informed operational decisions using environmental, geospatial, fishing-potential, and mission data. Grounded in requirements originating from ISRO / Department of Space problem statement 26176, ORCA bridges satellite observation and tactical maritime action.
 
 ORCA answers four core marine questions:
 - Where should I go?
@@ -65,7 +65,7 @@ What separates ORCA from existing marine information systems is the **Living Dec
 **Guiding architectural principle:**
 > *"AI understands and explains. Code calculates and decides."*
 
-The prototype is scoped to a single user role (Fisherman), a single demo flow, and enough data infrastructure to make that flow reliable during a live SIH presentation.
+The initial product release is scoped to an initial target persona (Fisherman / marine field operator), a complete deterministic validation flow, and robust fallback data infrastructure to ensure reliability during operational demonstrations.
 
 ---
 
@@ -98,12 +98,12 @@ The prototype is scoped to a single user role (Fisherman), a single demo flow, a
 
 ORCA is a **marine decision-support platform** — not a chatbot, not a data portal, and not a weather widget. It combines:
 
-- Satellite / Earth Observation data (SST, chlorophyll — simulated in prototype)
+- Satellite / Earth Observation data (SST, chlorophyll — simulated/curated in current implementation)
 - Ocean and wave data (Open-Meteo Marine API)
 - Weather data (Open-Meteo Forecast API)
-- Marine advisories (simulated in prototype)
+- Marine advisories (simulated in current implementation)
 - GIS and map data (Leaflet + OpenStreetMap + GeoJSON)
-- Fishing zone information (demo GeoJSON with PFZ scores)
+- Fishing zone information (reference GeoJSON with PFZ scores)
 - User and mission information (stored in Decision Object)
 
 ### What ORCA Is Not
@@ -120,20 +120,20 @@ ORCA is **not** a generic AI assistant that happens to know about the sea. It is
 
 ## 4. Core Innovation — Living Decision Lifecycle
 
-The Living Decision Lifecycle (LDL) is the central innovation of ORCA. It has nine stages but the prototype must prove only the following are working reliably:
+The Living Decision Lifecycle (LDL) is the central innovation of ORCA. It has nine stages, with the initial product release proving the core lifecycle end-to-end:
 
 ```
-[P0 — MUST WORK]
+[P0 — CORE PRODUCT LIFECYCLE]
 Query -> Plan -> Decide -> TRACK -> WATCH -> CHANGE DETECTION
 -> IMPACT CHECK -> EXPLAIN -> REPAIR / WAIT
 
-[P1 — If time allows]
+[P1 — Extended Features]
 Mission -> Feedback -> Learn / Compare (Predicted vs Actual)
 ```
 
 ### The Nine Stages (Conceptual)
 
-| Stage | Description | Prototype Priority |
+| Stage | Description | Implementation Priority |
 |---|---|---|
 | 1. Query | User asks in natural language | P0 |
 | 2. Plan | ORCA identifies data needed and collects it | P0 |
@@ -158,18 +158,18 @@ Most marine platforms stop at Stage 3. They give a recommendation and it disappe
 
 ## 5. Frozen Scope
 
-### What is IN the V1 Prototype
+### What is IN the Initial Product Scope
 
-- Single user role: **Fisherman**
+- Initial target user: **Fisherman / marine field operator**
 - Chat interface (text, English + Hindi + Hinglish)
 - Gemini query understanding and intent extraction
-- Data collection: Open-Meteo (real API with fallback), demo marine/PFZ data
+- Data collection: Open-Meteo (real API with fallback), curated marine/PFZ data
 - Deterministic decision engine: GO / CAUTION / WAIT
 - Map dashboard: Leaflet + OpenStreetMap
 - Decision Object: persistent storage (SQLite)
-- Track Decision button
-- Check Again button
-- Simulate Condition Change button (demo reliability)
+- Track Decision action
+- Check Again action
+- Simulate Condition Change action (deterministic testing & validation)
 - Impact check and threshold comparison
 - Gemini explanation of change and alternatives
 - Repair / Wait selection and state update
@@ -177,7 +177,7 @@ Most marine platforms stop at Stage 3. They give a recommendation and it disappe
 - Predicted vs Actual display (P1)
 - Fallback data for all external APIs
 
-### What is OUT of the V1 Prototype
+### What is OUT of the Initial Product Scope
 
 See Section 34 for the full explicit list.
 
@@ -185,7 +185,7 @@ See Section 34 for the full explicit list.
 
 ## 6. User Journey
 
-This is the complete journey a Fisherman user experiences during the prototype demo. Every step listed here must work.
+This is the complete journey an initial ORCA user (Fisherman / marine field operator) experiences during normal product operation and workflow validation. Every step listed here must work.
 
 ```
 1.  User opens ORCA in browser.
@@ -424,7 +424,7 @@ This is the most important module in ORCA. It must never delegate a safety-criti
 
 **Why SQLite over JSON files:** SQLite is a single file, supports basic queries, handles concurrent reads, and is a standard Python library.
 
-**Why NOT PostgreSQL:** The prototype needs to persist ~10-20 Decision Objects at most. PostgreSQL adds deployment complexity with zero benefit at this scale.
+**Why NOT PostgreSQL:** The current product scope requires persisting ~10-20 Decision Objects at most. PostgreSQL adds deployment complexity with zero benefit at this initial scale. (A migration path to PostgreSQL/PostGIS is planned for multi-tenant production deployments).
 
 ---
 
@@ -478,7 +478,7 @@ Marine:  wave_height, wave_direction, wave_period, swell_wave_height, ocean_curr
 Forecast: wind_speed_10m, wind_direction_10m, precipitation, weather_code, visibility
 ```
 
-**Prototype strategy:** Call the real API. Cache the response locally for 1 hour. If API is down, use `cache/weather_demo.json`. Cached/demo data must be labelled `[DEMO DATA]` in the UI.
+**Current implementation strategy:** Call the real API. Cache the response locally for 1 hour. If API is down, use `cache/weather_demo.json`. Fallback/test data must be clearly labelled in the UI.
 
 ---
 
@@ -486,7 +486,7 @@ Forecast: wind_speed_10m, wind_direction_10m, precipitation, weather_code, visib
 
 **Why:** NOAA CoastWatch ERDDAP is a public, reliable endpoint for Sea Surface Temperature data requiring no API key for basic datasets.
 
-**Prototype strategy:** This is P1. Cache a sample SST grid for the Indian Ocean region as `cache/sst_demo.json`. Always have the cache ready for demo day.
+**Current implementation strategy:** This is P1. Cache a sample SST grid for the Indian Ocean region as `cache/sst_demo.json`. Ensure the local fallback is ready for operational validation.
 
 ---
 
@@ -494,23 +494,23 @@ Forecast: wind_speed_10m, wind_direction_10m, precipitation, weather_code, visib
 
 **Why Leaflet:** Free, no API key, excellent `react-leaflet` wrapper, supports GeoJSON layers, polygon overlays, custom markers, and route polylines.
 
-**Why OpenStreetMap:** Free tiles, no usage limits for prototype, covers Indian coastal regions well.
+**Why OpenStreetMap:** Free tiles, no usage limits for initial deployment, covers Indian coastal regions well.
 
 ---
 
 ### 9.4 Geocoding — Nominatim [P1]
 
-**Prototype strategy:** Do not make the prototype depend on Nominatim for the core demo flow. Pre-define demo locations (e.g., "Kochi Port" = lat 9.966, lon 76.267) in a lookup table. Use Nominatim only for user-typed location searches in P1.
+**Current implementation strategy:** Do not make the core product flow depend on Nominatim latency. Pre-define standard operational locations (e.g., "Kochi Port" = lat 9.966, lon 76.267) in a lookup table. Use Nominatim for arbitrary user-typed location searches in P1.
 
 ---
 
 ### 9.5 PFZ / Fishing Zones — Demo GeoJSON
 
-**Why simulated:** Building a real PFZ ML model is out of scope. Official INCOIS PFZ APIs are not publicly accessible for prototype purposes.
+**Why simulated:** Real-time integration with official INCOIS PFZ APIs requires specialized institutional feeds. For the initial release, high-fidelity reference GeoJSON data is utilized.
 
-**Prototype data:** `data/pfz_zones.geojson` — a GeoJSON FeatureCollection where each feature is a fishing zone polygon.
+**Reference data:** `data/pfz_zones.geojson` — a GeoJSON FeatureCollection where each feature is a fishing zone polygon.
 
-**Demo values (fixed for prototype):**
+**Baseline reference values:**
 
 | Zone | PFZ Score | Label |
 |---|---|---|
@@ -518,7 +518,7 @@ Forecast: wind_speed_10m, wind_direction_10m, precipitation, weather_code, visib
 | Zone B | 86 | High |
 | Zone C | 91 | Very High |
 
-**IMPORTANT:** These values are prototype demo data. They must NOT be presented as official, real-time PFZ predictions from ISRO or INCOIS.
+**IMPORTANT:** These values are curated reference data for validation and demonstration. They must NOT be presented as official, real-time PFZ predictions from ISRO or INCOIS.
 
 ---
 
@@ -526,7 +526,7 @@ Forecast: wind_speed_10m, wind_direction_10m, precipitation, weather_code, visib
 
 **File:** `data/boundaries.geojson`
 
-**Included for prototype:**
+**Included for current scope:**
 - Indian EEZ boundary (approximate, for demo)
 - Restricted maritime zone (demo polygon)
 - Marine Protected Area (demo polygon)
@@ -560,7 +560,7 @@ Display a small badge whenever data source is not "live":
 - [CACHED] — from recent cache
 - [DEMO DATA] — from demo fallback file
 
-This is mandatory for SIH presentation honesty and prototype labelling.
+This is mandatory for transparent operational reporting and UI data source attribution.
 
 ---
 
@@ -874,7 +874,7 @@ STEP 8: RETURN DecisionResult
 }
 ```
 
-**Why configurable:** Thresholds must never be hardcoded. During the SIH demo, judges may ask "what if you change the threshold?" — we must be able to show it is a configuration, not embedded in code.
+**Why configurable:** Thresholds must never be hardcoded. Thresholds must remain configurable so operational policies can be adjusted without changing application logic and so the decision engine can be validated under different safety conditions.
 
 ---
 
@@ -959,9 +959,9 @@ The simulate endpoint accepts a payload of overridden conditions:
 { "override_conditions": { "wave_height_m": 2.8 } }
 ```
 
-This is injected into the Watch algorithm as if it were a live condition fetch. This gives the demo team full control and makes the presentation reliable even if Open-Meteo returns unchanged data.
+This is injected into the Watch algorithm as if it were a live condition fetch. This gives operators and validation teams full control and makes workflow validation deterministic even if external weather feeds return unchanged data.
 
-**Why simulate:** SIH demonstrations are live and time-constrained. Depending on real weather to change within 20 minutes is not reliable. The simulation button produces the exact same code path as a real change — it is not a fake; it is a controlled condition injection.
+**Why simulate:** Controlled condition injection is retained to provide deterministic testing and validation of the Living Decision Lifecycle without depending on environmental conditions changing at a specific time. The simulation endpoint executes the exact same code path as a real change — it is not a fake; it is a controlled condition injection.
 
 ---
 
@@ -1135,12 +1135,12 @@ SIDE PANEL shows:
 **Language:** TypeScript
 **Map:** react-leaflet v4
 **Styling:** Tailwind CSS
-**State:** React useState / useReducer (no Redux — prototype is simple enough)
+**State:** React useState / useReducer (keeps client architecture lightweight without unnecessary global store overhead)
 **API calls:** fetch with custom hooks
 
 **Why Next.js:** File-based routing, great developer experience, SSR capability if needed.
 **Why TypeScript:** Type safety prevents bugs in complex Decision Object handling.
-**Why Tailwind:** Rapid styling without a custom CSS framework, good for prototype speed.
+**Why Tailwind:** Utility-first styling enabling rapid UI refinement and clean component modularity.
 
 ### Page Structure
 
@@ -1528,7 +1528,7 @@ Response:
 
 ### Demo Scenario Setup
 
-The prototype ships with a pre-configured demo scenario:
+The initial product release ships with a pre-configured baseline validation scenario:
 
 - **Location:** Kochi, Kerala coast
 - **Demo zones:** Zone A, Zone B, Zone C (GeoJSON polygons in Arabian Sea off Kochi)
@@ -1540,7 +1540,7 @@ This scenario is deterministic and will work identically whether Open-Meteo is r
 
 ### Demo Reset
 
-GET /api/demo/reset clears all decisions from SQLite and resets the demo state. Use before each presentation run.
+GET /api/demo/reset clears all decisions from SQLite and resets the demo state. Use before each validation or demonstration run.
 
 ---
 
@@ -1716,7 +1716,7 @@ All errors return structured JSON:
 - [x] UI shows correct badges for data source
 - [x] Chat conversation history persists during session
 - [x] Map auto-zooms to selected zone on decision
-- [x] Tested on presentation laptop
+- [x] Tested across target runtime environments
 
 ### Phase 8 [P1] — Feedback + SST + Polish (Day 8-10)
 - [x] Feedback form for post-mission data
@@ -1727,13 +1727,13 @@ All errors return structured JSON:
 - [x] Hindi/Hinglish query understanding tested
 - [x] Nominatim coastal location & port geocoding search
 
-### Phase 9 — Interactive Presentation / Judge Demo Tour & Live Threshold Tuning
+### Phase 9 — Interactive Demonstration Tour & Live Threshold Tuning
 - [x] /api/config/thresholds endpoint (GET / POST / RESET)
 - [x] Live safety thresholds and composite score weights configurator UI
 - [x] Dynamic re-evaluation proof: changing limits instantly updates decision verdicts
-- [x] 8-step 1-click guided SIH presentation tour toolbar (DemoTourBar)
-- [x] Quick-access SIH Judge Defense & Architecture cheat sheet modal (JudgeReferenceModal)
-- [x] End-to-end full demo suite verification (100% test pass rate)
+- [x] 8-step 1-click guided interactive tour toolbar (DemoTourBar)
+- [x] Quick-access Architecture & Technical Reference cheat sheet modal (JudgeReferenceModal)
+- [x] End-to-end full validation suite verification (100% test pass rate)
 
 ### Phase 10 — Simulated Coastal AIS Vessel Fleet & Marine Traffic GIS Layer
 - [x] AIS vessel fleet dataset with mechanized trawlers, gillnetters, Coast Guard interceptors, and research ships
@@ -1748,7 +1748,7 @@ All errors return structured JSON:
 
 ## 28. P0 / P1 / P2 Priorities
 
-### P0 — MUST WORK BEFORE SIH DEMO
+### P0 — CRITICAL FOR INITIAL PRODUCT RELEASE
 
 | # | Item | Phase |
 |---|---|---|
@@ -1767,7 +1767,7 @@ All errors return structured JSON:
 | 13 | Gemini explanation of change | 6 |
 | 14 | Repair options generated + verified | 6 |
 | 15 | User selects repair -> Decision Object updated | 6 |
-| 16 | Full demo flow works reliably | 7 |
+| 16 | Full product lifecycle validation flow works reliably | 7 |
 
 **Rule: Do not start P1 work until all P0 items are checked off.**
 
@@ -1798,12 +1798,12 @@ All errors return structured JSON:
 
 ---
 
-## 29. Demo Flow
+## 29. Product Demonstration & Validation Flow
 
-This is the exact sequence the demo presenter follows during the SIH presentation.
+This is the exact sequence used for stakeholder product demonstrations and end-to-end operational validation.
 
 ```
-[SETUP — before judges arrive]
+[SETUP — Initial State]
 - Open ORCA in browser
 - Map shows Kerala coast with Zone A, Zone B, Zone C
 - Clear previous decisions: GET /api/demo/reset
@@ -1865,27 +1865,27 @@ Show Predicted vs Actual screen.
 
 ---
 
-## 30. SIH Presentation Flow
+## 30. ORCA Product Demonstration & Validation Flow
 
-### Judge Questions to Prepare For
+### Key Technical & Stakeholder Questions to Address
 
-| Question | Prepared Answer |
+| Question | Prepared Architectural Answer |
 |---|---|
-| "Is this real data?" | "We use real weather data from Open-Meteo API where available, clearly labelled. PFZ and fishing zone data are prototype demo data. In production, these connect to ISRO/INCOIS APIs." |
-| "Why not use Gemini to make the decision?" | "Safety-critical marine decisions must be deterministic and auditable. Gemini parses language and explains results — Python code enforces the rules. This is the correct design for a safety-critical system." |
-| "What makes this different from a chatbot?" | "A chatbot gives information and forgets it. ORCA saves the decision, monitors the conditions that justified it, detects when those conditions change, and tells you whether your specific plan is still valid." |
-| "Why SQLite?" | "Appropriate for a prototype tracking a small number of decisions. Production would migrate to PostgreSQL/PostGIS." |
-| "Does it support other languages?" | "Yes. Gemini handles Hindi, English, and Hinglish. Both query understanding and explanations use language-aware prompts." |
-| "What if the API is down?" | "Every data source has a three-layer fallback: live API -> recent cache -> demo data. The system always works." |
-| "How do you handle boundary violations?" | "Boundary checks use GeoJSON polygons with deterministic Python point-in-polygon computation. A boundary violation is a hard stop — Gemini never makes this decision." |
+| "Is this real data?" | "We use real weather data from Open-Meteo API where available, clearly labelled with data-provenance badges. PFZ and fishing zone data are currently curated reference data for validation. In production deployment, these connect to authenticated ISRO/INCOIS institutional APIs." |
+| "Why not use Gemini to make the decision?" | "Safety-critical marine decisions must be deterministic, transparent, and auditable. Gemini parses natural language and explains results — deterministic Python code strictly enforces safety rules and numerical thresholds. This separation of concerns is fundamental for maritime safety." |
+| "What makes this different from a chatbot?" | "A chatbot gives unstructured information and forgets it. ORCA converts requests into persistent Decision Objects, monitors the environmental parameters that justified them, detects when conditions invalidate the safety envelope, and computes verified alternatives." |
+| "Why SQLite in current scope?" | "Appropriate and lightweight for single-node deployments and initial operational validation tracking active decisions. Multi-tenant enterprise deployment roadmap includes migration to PostgreSQL/PostGIS." |
+| "Does it support other languages?" | "Yes. The conversational layer handles Hindi, English, and Hinglish. Both intent extraction and explanations utilize language-aware prompts." |
+| "What if external APIs are down?" | "Every data source incorporates an industrial three-layer fallback: live API -> local timestamped cache -> deployment fallback data. The decision engine remains operational even during connectivity outages." |
+| "How do you handle boundary violations?" | "Boundary checks use GeoJSON polygons with deterministic Python point-in-polygon computation. A boundary violation triggers an immediate hard stop — Gemini never arbitrates spatial or regulatory boundaries." |
 
-### Core Message for Judges
+### Core Product Principles for Demonstration
 
-1. The innovation is the lifecycle, not the chat.
-2. AI understands and explains. Code decides. This is what makes ORCA trustworthy.
-3. The demo is reliable — condition change is controlled via simulate button.
-4. PFZ and satellite data are simulated; the architecture shows exactly where real data plugs in.
-5. The entire flow works end-to-end right now.
+1. The core innovation is the Living Decision Lifecycle, not the conversational interface alone.
+2. AI understands and explains. Code calculates and decides. This is what makes ORCA operationally trustworthy.
+3. The validation workflow is reliable — environmental condition change is deterministically validated via controlled condition injection.
+4. Data provenance is fully transparent — live, cached, and fallback reference data are explicitly tagged in the UI.
+5. The complete decision lifecycle functions end-to-end in the current product implementation.
 
 ---
 
@@ -1912,7 +1912,7 @@ Show Predicted vs Actual screen.
 | API failure | Disable Open-Meteo mock -> confirm demo data returned |
 | Gemini failure | Mock Gemini error -> confirm fallback explanation returned |
 
-### Manual Tests Before Demo
+### Manual Tests Before Demonstration & Deployment
 
 - [ ] Full demo flow on real browser (not localhost — use LAN IP)
 - [ ] Demo reset works cleanly
@@ -1922,14 +1922,14 @@ Show Predicted vs Actual screen.
 - [ ] Map markers and route appear correctly
 - [ ] [DEMO DATA] badge appears when expected
 - [ ] Chat accepts Hindi text and returns reasonable response
-- [ ] Works on the presentation laptop specifically
+- [ ] Verified across target deployment environments
 - [ ] Works without internet connection
 
 ---
 
 ## 32. Definition of Done
 
-The ORCA V1 prototype is DONE when all criteria below are met:
+The ORCA Initial Product Release meets release acceptance criteria when all criteria below are satisfied:
 
 ### Functional
 
@@ -1957,13 +1957,13 @@ The ORCA V1 prototype is DONE when all criteria below are met:
 - [ ] All repair options are pre-verified by decision engine before display
 - [ ] /api/demo/reset clears state cleanly
 
-### Demo Reliability
+### Demonstration & Validation Reliability
 
-- [ ] Demo flow completes within 5 minutes
-- [ ] No crashes or 500 errors during full flow
-- [ ] Works on presentation laptop with fresh browser
-- [ ] Works without internet connection
-- [ ] SIMULATE CONDITION CHANGE is always deterministic
+- [ ] Product demonstration flow completes smoothly within 5 minutes
+- [ ] Zero unhandled exceptions or 500 errors during end-to-end validation
+- [ ] Verified on fresh browser sessions without cached state anomalies
+- [ ] Operates reliably when external network is disconnected (resilient fallback mode)
+- [ ] SIMULATE CONDITION CHANGE generates deterministic, verifiable alerts
 
 ---
 
@@ -1971,7 +1971,7 @@ The ORCA V1 prototype is DONE when all criteria below are met:
 
 These items are INTENTIONALLY excluded from V1. They represent the natural production roadmap.
 
-### Short-term (Post-SIH / V2)
+### Near-term Platform Evolution (Phase 2)
 
 - Real INCOIS PFZ API integration
 - SST and chlorophyll layers from MOSDAC/ISRO
@@ -1981,7 +1981,7 @@ These items are INTENTIONALLY excluded from V1. They represent the natural produ
 - Improved Hindi/regional language support
 - Coast Guard dashboard (vessel tracking, hazards)
 
-### Medium-term (V3)
+### Medium-term Deployment Hardening (Phase 3)
 
 - PostgreSQL/PostGIS migration for geospatial queries
 - Real-time cyclone and lightning advisory integration (IMD/NDMA)
@@ -1990,7 +1990,7 @@ These items are INTENTIONALLY excluded from V1. They represent the natural produ
 - Vessel registration and profile management
 - Mobile app (React Native or PWA)
 
-### Long-term (Production)
+### Long-term Enterprise Production & Scale
 
 - Full ISRO/MOSDAC satellite data integration
 - Disaster Management dashboard
@@ -2005,7 +2005,7 @@ These items are INTENTIONALLY excluded from V1. They represent the natural produ
 
 ## 34. Explicit NOT-TO-BUILD List
 
-The following items are explicitly excluded from the V1 prototype. If anyone proposes adding one during development, the answer is NO unless the full team agrees it is essential for the P0 demo flow.
+The following items are explicitly excluded from the current product release scope. If anyone proposes adding one during current development, the answer is NO unless the full team agrees it is essential for the core decision lifecycle validation.
 
 ### Infrastructure
 
@@ -2016,7 +2016,7 @@ The following items are explicitly excluded from the V1 prototype. If anyone pro
 - NO: LangGraph
 - NO: Message queues (Celery, RabbitMQ, Kafka)
 - NO: Background task scheduler (Celery beat, APScheduler, cron)
-- NO: WebSockets for real-time updates (polling is fine for prototype)
+- NO: WebSockets for real-time updates (client polling is sufficient for current scope)
 
 ### AI / ML
 
@@ -2051,11 +2051,11 @@ The following items are explicitly excluded from the V1 prototype. If anyone pro
 - NO: Email alerts
 - NO: PDF report generation
 - NO: User account management
-- NO: Mobile native app
+- NO: Mobile native app (not part of the current web release; planned as a future deployment surface)
 - NO: Offline-first architecture
 - NO: Fleet management
 - NO: Autonomous vessel control suggestions
-- NO: Multi-language UI text (chat supports Hindi, UI is English only in V1)
+- NO: Multi-language UI text (chat conversational layer supports Hindi/English, UI is English in current release)
 
 ---
 
@@ -2065,18 +2065,19 @@ The following items are explicitly excluded from the V1 prototype. If anyone pro
 
 > **"ORCA is not a chatbot with marine data. ORCA is a decision system with a conversational AI layer."**
 
-The core value ORCA demonstrates at SIH is:
+The core value ORCA delivers as a marine decision-support platform is:
 
 > **A marine recommendation should not disappear after it is given.**
 >
 > ORCA turns that recommendation into a living decision that can be:
 > DECIDED -> TRACKED -> RECHECKED -> EXPLAINED -> REPAIRED / DELAYED -> UPDATED
 
-**If a feature does not contribute to demonstrating this lifecycle, it does not belong in V1.**
+**If a feature does not contribute to delivering and validating this lifecycle, it does not belong in the initial release.**
 
 ---
 
-*PLAN.md Version: 1.0.0*
+*PLAN.md Version: 1.1.0*
 *Created: 2026-08-25*
-*Status: FROZEN — Project Contract*
+*Updated: 2026-09-13 (Updated to reflect ORCA's product-oriented deployment direction while preserving the existing technical scope and architecture)*
+*Status: FROZEN — Product & Technical Source of Truth*
 *Do not modify without explicit team agreement.*
