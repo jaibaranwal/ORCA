@@ -7,7 +7,7 @@
     "lon_min": 75.0,
     "lon_max": 76.8
   },
-  "timestamp": "2026-08-25T10:27:09Z",
+  "timestamp": "2026-09-13T10:21:27Z",
   "data_source": "LIVE NOAA/MARINE",
   "thermal_fronts": [
     {
@@ -39,31 +39,31 @@
     {
       "lat": 9.65,
       "lon": 76.05,
-      "sst": 26.8,
+      "sst": 29.0,
       "zone_id": "zone_a"
     },
     {
       "lat": 9.75,
       "lon": 76.15,
-      "sst": 26.7,
+      "sst": 28.0,
       "zone_id": "zone_a"
     },
     {
       "lat": 9.85,
       "lon": 76.1,
-      "sst": 26.7,
+      "sst": 27.8,
       "zone_id": "zone_a"
     },
     {
       "lat": 9.7,
       "lon": 75.95,
-      "sst": 27.0,
+      "sst": 29.2,
       "zone_id": "zone_a"
     },
     {
       "lat": 9.95,
       "lon": 75.85,
-      "sst": 27.1,
+      "sst": 29.1,
       "zone_id": "zone_b"
     },
     {
