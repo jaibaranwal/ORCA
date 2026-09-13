@@ -329,13 +329,13 @@ async def get_config_status():
     key = os.getenv("GEMINI_API_KEY", "")
     return {
         "gemini_configured": bool(key and len(key) > 5),
-        "gemini_model": os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        "gemini_model": os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
     }
 
 @router.post("/config/gemini-key")
 async def set_gemini_key(payload: Dict[str, Any] = Body(...)):
     new_key = payload.get("api_key", "").strip()
-    model = payload.get("model", "gemini-2.5-flash").strip()
+    model = payload.get("model", "gemini-3.6-flash").strip()
     if new_key:
         os.environ["GEMINI_API_KEY"] = new_key
         os.environ["GEMINI_MODEL"] = model

@@ -174,7 +174,7 @@ export async function fetchConfigStatus(): Promise<{ gemini_configured: boolean;
   return res.json();
 }
 
-export async function saveGeminiKey(apiKey: string, model: string = 'gemini-1.5-flash'): Promise<{ status: string; message: string }> {
+export async function saveGeminiKey(apiKey: string, model: string = 'gemini-3.6-flash'): Promise<{ status: string; message: string }> {
   const res = await fetch(`${API_BASE_URL}/config/gemini-key`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

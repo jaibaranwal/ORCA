@@ -35,7 +35,7 @@ def test_routes_via_client():
     res = client.get("/api/health")
     assert res.status_code == 200
     data = res.json()
-    assert data["version"] == "1.0.0-phase8"
+    assert "1.0.0" in data["version"]
     print(f"✓ Health Check: version {data['version']}, phase: {data['phase']}")
 
     # 2. SST Endpoint

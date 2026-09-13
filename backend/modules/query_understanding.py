@@ -8,7 +8,7 @@ from typing import Dict, Any, Optional
 logger = logging.getLogger("orca.query_understanding")
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent"
 
 KNOWN_ZONES = {
     "zone a": "zone_a",
@@ -47,7 +47,7 @@ async def parse_user_query_gemini(query: str, user_role: str = "fisherman") -> O
     if not api_key:
         return None
 
-    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    model = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
     api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
 
     payload = {

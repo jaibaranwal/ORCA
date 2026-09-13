@@ -8,7 +8,7 @@ from models.schemas import DecisionResult
 logger = logging.getLogger("orca.explanation")
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent"
 
 SYSTEM_EXPLANATION_PROMPT = """You are ORCA's conversational explanation assistant for Indian fishermen.
 Your job is to explain the system's deterministic marine decision in simple, clear, and direct natural language.
@@ -32,7 +32,7 @@ async def generate_gemini_explanation(
     if not api_key:
         return None
 
-    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    model = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
     api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
 
     prompt_content = f"{SYSTEM_EXPLANATION_PROMPT}\n\nLanguage Requested: {language}\nContext: {context_type}\nDecision Data: {json.dumps(decision_data, indent=2)}"
@@ -45,7 +45,7 @@ async def generate_gemini_explanation(
         ],
         "generationConfig": {
             "temperature": 0.2,
-            "maxOutputTokens": 250
+            "maxOutputTokens": 1024
         }
     }
 
@@ -147,7 +147,7 @@ async def answer_conversational_query(
     Uses Gemini when key is present, with rich deterministic marine knowledge fallback.
     """
     api_key = os.getenv("GEMINI_API_KEY", "")
-    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    model = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
     is_hindi = language in ["hi", "hinglish"]
 
     if api_key:
@@ -161,7 +161,7 @@ async def answer_conversational_query(
             "contents": [
                 {"parts": [{"text": f"{system_p}\n\nUser Question: {query}"}]}
             ],
-            "generationConfig": {"temperature": 0.3, "maxOutputTokens": 200}
+            "generationConfig": {"temperature": 0.3, "maxOutputTokens": 1024}
         }
         try:
             async with httpx.AsyncClient(timeout=8.0) as client:
