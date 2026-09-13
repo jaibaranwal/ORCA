@@ -570,6 +570,49 @@ async def transcribe_voice_audio(
         logger.error(f"Gnani STT transcription failed: {e}")
         raise HTTPException(status_code=500, detail=f"Voice transcription failed: {str(e)}")
 
+# -------------------------------------------------------------
+# LIVING DECISION AUTONOMOUS WATCHER DAEMON
+# -------------------------------------------------------------
+
+from modules.decision_watcher_daemon import decision_watcher
+from modules.safety_manifest import generate_safety_manifest, generate_manifest_html
+
+@router.get("/watcher/status")
+async def get_watcher_daemon_status():
+    """Returns status and diagnostic metrics of the LivingDecisionWatcher background daemon."""
+    return decision_watcher.get_status()
+
+@router.post("/watcher/trigger-now")
+async def trigger_watcher_cycle():
+    """Immediately triggers an autonomous decision watch cycle across all active missions."""
+    return await decision_watcher.trigger_cycle()
+
+# -------------------------------------------------------------
+# MARINE SAFETY CLEARANCE MANIFEST GENERATOR
+# -------------------------------------------------------------
+
+@router.get("/decisions/{decision_id}/manifest")
+async def get_decision_safety_manifest(
+    decision_id: str = Path(..., description="Target Decision ID"),
+    format: str = Query("json", description="Export format: 'json' or 'html'")
+):
+    """
+    Generates an official tamper-proof Marine Safety Clearance Certificate.
+    Supports JSON data export or print-ready HTML manifest.
+    """
+    try:
+        manifest = generate_safety_manifest(decision_id)
+        if format.lower() == "html":
+            html_content = generate_manifest_html(manifest)
+            return Response(content=html_content, media_type="text/html")
+        return manifest
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve))
+    except Exception as e:
+        logger.error(f"Error generating safety manifest for {decision_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Manifest generation failed: {str(e)}")
+
+
 
 
 

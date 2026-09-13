@@ -287,5 +287,35 @@ export async function playVoiceAudio(text: string, language: string = 'en'): Pro
   await audio.play();
 }
 
+// -------------------------------------------------------------
+// AUTONOMOUS DECISION WATCHER & SAFETY CLEARANCE MANIFEST
+// -------------------------------------------------------------
+
+export async function fetchWatcherStatus(): Promise<import('./types').WatcherStatusResponse> {
+  const res = await fetch(`${API_BASE_URL}/watcher/status`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch watcher status: ${res.status}`);
+  return res.json();
+}
+
+export async function triggerWatcherCycle(): Promise<import('./types').WatcherTriggerResponse> {
+  const res = await fetch(`${API_BASE_URL}/watcher/trigger-now`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!res.ok) throw new Error(`Failed to trigger watcher cycle: ${res.status}`);
+  return res.json();
+}
+
+export function getSafetyManifestHtmlUrl(decisionId: string): string {
+  return `${API_BASE_URL}/decisions/${decisionId}/manifest?format=html`;
+}
+
+export async function fetchSafetyManifest(decisionId: string): Promise<import('./types').SafetyManifest> {
+  const res = await fetch(`${API_BASE_URL}/decisions/${decisionId}/manifest?format=json`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch safety manifest: ${res.status}`);
+  return res.json();
+}
+
+
 
 

@@ -56,6 +56,16 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 app.include_router(router)
 
+from modules.decision_watcher_daemon import decision_watcher
+
+@app.on_event("startup")
+async def on_startup():
+    await decision_watcher.start()
+
+@app.on_event("shutdown")
+async def on_shutdown():
+    await decision_watcher.stop()
+
 @app.get("/")
 async def root():
     return {

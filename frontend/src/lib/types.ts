@@ -389,3 +389,74 @@ export interface AISResponse {
   vessels: AISVessel[];
 }
 
+export interface WatcherStatusResponse {
+  is_running: boolean;
+  interval_seconds: number;
+  last_run_at: string | null;
+  total_cycles_completed: number;
+  total_decisions_checked: number;
+  total_alerts_triggered: number;
+  active_tracking_count: number;
+  active_alerts_count: number;
+  last_cycle_summary: {
+    cycle_number: number;
+    timestamp: string;
+    duration_ms: number;
+    tracking_count: number;
+    checked_count: number;
+    alerts_count: number;
+    details: any[];
+  } | null;
+}
+
+export interface WatcherTriggerResponse {
+  status: string;
+  cycle_result: {
+    cycle_number: number;
+    timestamp: string;
+    duration_ms: number;
+    tracking_count: number;
+    checked_count: number;
+    alerts_count: number;
+    details: any[];
+  };
+}
+
+export interface SafetyManifest {
+  manifest_id: string;
+  generated_at: string;
+  issuer: string;
+  hash_sha256: string;
+  verification_url: string;
+  vessel_profile: {
+    user_id: string;
+    vessel_type: string;
+    origin_port: string;
+    origin_coordinates: GeoLocation;
+  };
+  destination_zone: {
+    zone_id: string;
+    zone_name: string;
+    pfz_potential: string;
+    distance_km: number;
+  };
+  clearance_decision: {
+    decision_id: string;
+    lifecycle_state: string;
+    verdict: 'GO' | 'CAUTION' | 'WAIT';
+    orca_safety_score: number;
+    hard_stop: boolean;
+    boundary_violation: boolean;
+    reasons: string[];
+    official_advisory: string;
+  };
+  environmental_snapshot: MarineConditions;
+  rules_and_clearance: {
+    authorized_for_departure: boolean;
+    departure_window: string;
+    clearance_code: string;
+    regulatory_disclaimer: string;
+  };
+}
+
+

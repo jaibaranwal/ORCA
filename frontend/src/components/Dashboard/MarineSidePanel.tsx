@@ -22,9 +22,14 @@ import {
   selectRepairOption, 
   submitMissionFeedback,
   transcribeAudio,
-  playVoiceAudio
+  playVoiceAudio,
+  fetchWatcherStatus,
+  triggerWatcherCycle,
+  getSafetyManifestHtmlUrl
 } from '@/lib/api';
 import { NavTabType } from '@/components/Navigation/Header';
+import { WatcherStatusResponse } from '@/lib/types';
+
 
 interface ChatMessage {
   id: string;
@@ -111,6 +116,43 @@ export default function MarineSidePanel({
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+
+  // Section 33: Autonomous Watcher Daemon & Safety Clearance State
+  const [watcherStatus, setWatcherStatus] = useState<WatcherStatusResponse | null>(null);
+  const [triggeringWatcher, setTriggeringWatcher] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadWatcher = async () => {
+      try {
+        const s = await fetchWatcherStatus();
+        if (mounted) setWatcherStatus(s);
+      } catch (err) {
+        // quiet fallback
+      }
+    };
+    loadWatcher();
+    const timer = setInterval(loadWatcher, 15000);
+    return () => {
+      mounted = false;
+      clearInterval(timer);
+    };
+  }, []);
+
+  const handleManualWatcherTrigger = async () => {
+    setTriggeringWatcher(true);
+    try {
+      const res = await triggerWatcherCycle();
+      showToast('success', `⚡ Autonomous Watcher completed Cycle #${res.cycle_result.cycle_number} in ${res.cycle_result.duration_ms}ms.`);
+      const s = await fetchWatcherStatus();
+      setWatcherStatus(s);
+    } catch (err: any) {
+      showToast('alert', 'Watcher trigger cycle encountered an error.');
+    } finally {
+      setTriggeringWatcher(false);
+    }
+  };
+
 
   const startVoiceRecording = async () => {
     try {
@@ -633,25 +675,58 @@ export default function MarineSidePanel({
                 </div>
               )}
 
-              {/* Action Buttons: Track & Details */}
-              <div className="flex gap-2">
-                {!trackedDecision && (
+              {/* Action Buttons: Track, Manifest Certificate & Details */}
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  {!trackedDecision ? (
+                    <button
+                      onClick={handleTrackDecision}
+                      disabled={tracking}
+                      className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded-lg text-xs transition-colors shadow-sm"
+                    >
+                      {tracking ? 'Saving Decision...' : '⏱️ Track Decision (Save to Registry)'}
+                    </button>
+                  ) : (
+                    <a
+                      href={getSafetyManifestHtmlUrl(trackedDecision.decision_id)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg text-xs transition-colors shadow-sm text-center flex items-center justify-center gap-1.5"
+                    >
+                      <span>📄</span>
+                      <span>Download Safety Clearance Manifest</span>
+                    </a>
+                  )}
                   <button
-                    onClick={handleTrackDecision}
-                    disabled={tracking}
-                    className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded-lg text-xs transition-colors shadow-sm"
+                    onClick={() => onSelectNavTab('decision')}
+                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium rounded-lg text-xs transition-colors"
                   >
-                    {tracking ? 'Saving Decision...' : '⏱️ Track Decision (Save to Registry)'}
+                    Deep Dive ➔
                   </button>
-                )}
-                <button
-                  onClick={() => onSelectNavTab('decision')}
-                  className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium rounded-lg text-xs transition-colors"
-                >
-                  Deep Dive ➔
-                </button>
+                </div>
+
+                {/* Autonomous Watcher Daemon Live Telemetry */}
+                <div className="flex items-center justify-between px-2.5 py-1.5 bg-slate-950/80 border border-slate-800 rounded-lg text-[10px] text-slate-400">
+                  <div className="flex items-center gap-1.5">
+                    <span className={`w-2 h-2 rounded-full ${watcherStatus?.is_running ? 'bg-emerald-400 animate-ping' : 'bg-slate-600'}`} />
+                    <span className="text-slate-300 font-semibold">
+                      Autonomous Watcher Daemon: {watcherStatus?.is_running ? 'Active' : 'Offline'}
+                    </span>
+                    <span className="font-mono text-slate-500">
+                      (Cycle #{watcherStatus?.total_cycles_completed ?? 0})
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleManualWatcherTrigger}
+                    disabled={triggeringWatcher}
+                    className="text-blue-400 hover:text-blue-300 font-semibold underline disabled:opacity-50"
+                  >
+                    {triggeringWatcher ? 'Running...' : '⚡ Run Cycle Now'}
+                  </button>
+                </div>
               </div>
             </div>
+
           ) : (
             /* Sector Selector Fallback */
             <div className="space-y-2">
