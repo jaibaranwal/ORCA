@@ -19,6 +19,20 @@ import {
   DecisionObject 
 } from '@/lib/types';
 import OrcaMap from '@/components/Map/OrcaMap';
+import dynamic from 'next/dynamic';
+
+const Orca3DViewer = dynamic(() => import('@/components/Map/Orca3DViewer'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full min-h-[420px] rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-400 text-xs">
+      <div className="flex items-center gap-2">
+        <span className="animate-spin inline-block w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full" />
+        Initializing 3D Ocean Digital Twin...
+      </div>
+    </div>
+  ),
+});
+
 import Header, { NavTabType, DEMO_PORTS } from '@/components/Navigation/Header';
 import MarineSidePanel from '@/components/Dashboard/MarineSidePanel';
 import DemoTourBar from '@/components/Navigation/DemoTourBar';
@@ -35,6 +49,7 @@ export default function MarineDashboard() {
   const [trackedDecisions, setTrackedDecisions] = useState<DecisionObject[]>([]);
   const [language, setLanguage] = useState<'en' | 'hi'>('en');
   const [activeNavTab, setActiveNavTab] = useState<NavTabType>('dashboard');
+  const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
   
   const [showThresholdsModal, setShowThresholdsModal] = useState(false);
   const [showJudgeModal, setShowJudgeModal] = useState(false);
@@ -159,26 +174,57 @@ export default function MarineDashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch h-[calc(100vh-125px)] min-h-[600px]">
           
-          {/* Left Panel: GIS Map (7 of 12 columns, ~60%) */}
+          {/* Left Panel: GIS Map & 3D Ocean Twin (7 of 12 columns, ~60%) */}
           <div className="lg:col-span-7 flex flex-col bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg p-2.5">
             <div className="flex items-center justify-between pb-2 px-1 text-xs text-slate-300 font-mono">
               <span className="font-bold flex items-center gap-1.5">
-                <span>🗺️</span> {userOrigin.name || 'Kochi Port'} Corridor & EEZ Waters
+                <span>{viewMode === '2d' ? '🗺️' : '🌊'}</span> {userOrigin.name || 'Kochi Port'} {viewMode === '2d' ? 'Corridor & EEZ Waters' : '3D Ocean Digital Twin'}
               </span>
-              <span className="text-slate-400 text-[11px]">
-                {zones.length} Fishing Sectors • Boundary Layers Active
-              </span>
+              <div className="flex items-center gap-2">
+                <div className="bg-slate-950 border border-slate-800 p-0.5 rounded-lg flex items-center gap-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('2d')}
+                    className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${
+                      viewMode === '2d' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    🗺️ 2D Map
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('3d')}
+                    className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${
+                      viewMode === '3d' ? 'bg-cyan-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    🌊 3D Ocean Twin
+                  </button>
+                </div>
+                <span className="text-slate-500 text-[10px] hidden sm:inline">
+                  {zones.length} Sectors Active
+                </span>
+              </div>
             </div>
 
             <div className="flex-1 w-full rounded-xl overflow-hidden border border-slate-800">
-              <OrcaMap
-                zones={zones}
-                boundaries={boundaries}
-                selectedZone={selectedZone}
-                decision={decision}
-                userOrigin={userOrigin}
-                onSelectZone={handleSelectZone}
-              />
+              {viewMode === '2d' ? (
+                <OrcaMap
+                  zones={zones}
+                  boundaries={boundaries}
+                  selectedZone={selectedZone}
+                  decision={decision}
+                  userOrigin={userOrigin}
+                  onSelectZone={handleSelectZone}
+                />
+              ) : (
+                <Orca3DViewer
+                  decision={decision}
+                  selectedZone={selectedZone}
+                  userOrigin={userOrigin}
+                  language={language}
+                />
+              )}
             </div>
           </div>
 
