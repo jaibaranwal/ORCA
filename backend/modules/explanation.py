@@ -32,7 +32,7 @@ async def generate_gemini_explanation(
     if not api_key:
         return None
 
-    model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
     api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
 
     prompt_content = f"{SYSTEM_EXPLANATION_PROMPT}\n\nLanguage Requested: {language}\nContext: {context_type}\nDecision Data: {json.dumps(decision_data, indent=2)}"
