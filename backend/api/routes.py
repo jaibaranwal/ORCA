@@ -52,9 +52,9 @@ async def health_check():
     return HealthResponse(
         status="healthy",
         service="ORCA Marine Decision Support Engine",
-        version="1.0.0-phase8",
+        version="1.0.0-phase10",
         timestamp=datetime.utcnow().isoformat() + "Z",
-        phase="Phase 8 - SST NOAA ERDDAP Layer & Geocoding Active",
+        phase="Phase 10 - Coastal AIS Vessel Fleet & Marine Intelligence Active",
         details={
             "database": "SQLite Decision Store Active",
             "decision_engine": "Deterministic Rules Active (GO/CAUTION/WAIT)",
@@ -329,13 +329,13 @@ async def get_config_status():
     key = os.getenv("GEMINI_API_KEY", "")
     return {
         "gemini_configured": bool(key and len(key) > 5),
-        "gemini_model": os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+        "gemini_model": os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
     }
 
 @router.post("/config/gemini-key")
 async def set_gemini_key(payload: Dict[str, Any] = Body(...)):
     new_key = payload.get("api_key", "").strip()
-    model = payload.get("model", "gemini-1.5-flash").strip()
+    model = payload.get("model", "gemini-2.5-flash").strip()
     if new_key:
         os.environ["GEMINI_API_KEY"] = new_key
         os.environ["GEMINI_MODEL"] = model
